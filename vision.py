@@ -1,5 +1,5 @@
 from ast import While
-from curses import window
+import unicurses 
 import cv2
 import sys
 
@@ -31,7 +31,7 @@ class Vision:
   def camera_window(self):
     delay = 1
     window_name = "frame"
-    cam = cv2.VideoCapture(0)
+    cam = cv2.VideoCapture(1+cv2.CAP_DSHOW) #引数に番号だけ渡すのではダメだった模様
     
     if not cam.isOpened():
       return print("failure video capture")
