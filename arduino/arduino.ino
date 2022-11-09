@@ -24,6 +24,7 @@
 #define readFlowRatePin 15  //A1
 #define readPressurePin 14  //A0
 #define setPressurePin 11
+const unsigned long offsettime = 1200;
 
 // allocate the memory for the document
 // StaticJsonDocument<1024> inSerialData;
@@ -60,17 +61,21 @@ void loop() {
 
   //フラグ処理:micros() - trigerTimingは、計測開始してからの経過時間。
   // 計測の経過時間が計測の設定時間を超えない限りは経過時間に計測時間が代入される。計測時間が過ぎると経過時間は-1になる。
-  if (setDt != -1 && long(millis() - trigerTiming) <= setDt) {
-    elapsedDt = millis() - trigerTiming;
-    SetPressure(setPressure);
+  if (setDt != -1 && long(millis() - trigerTiming - offsettime) <= setDt) {
+    elapsedDt = millis() - trigerTiming - offsettime;
   } else {
     elapsedDt = -1;
-    SetPressure(0);
   }
 
   if (elapsedDt == -1) {
     trigerTiming = millis();
     setDt = -1;
+  }
+
+  if (elapsedDt > 0) {
+    SetPressure(setPressure);
+  } else {
+    SetPressure(0);
   }
 
   Tx(GetPressure(), GetFlowRate());
