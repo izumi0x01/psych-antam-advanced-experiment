@@ -26,7 +26,8 @@
 // StaticJsonDocument<1024> outSerialData;
 
 //メモリサイズが適切でないとJSONを正確に送れないぽい
-DynamicJsonDocument data(1024);
+DynamicJsonDocument readData(516);
+DynamicJsonDocument sendData(516);
 
 bool rxAvailable = false;
 long setDt = -1;
@@ -76,7 +77,7 @@ void loop() {
   Tx();
 
 
-  delay(100);
+  delay(50);
 }
 
 
@@ -85,37 +86,34 @@ void OperateSerial() {
     rxAvailable = true;
   }
 
-  serializeJson(data, Serial);
+  serializeJson(sendData, Serial);
   Serial.println("");
 }
 
 void Rx() {
-  deserializeJson(data, Serial);
+  deserializeJson(readData, Serial);
 
-  if (!data["sP"].isNull())
-  {
+  if (!readData.isNull()) {
 
-    setPressure = data["sP"];
-  data.remove("sP");
-  }
+    setPressure = readData["sP"];
+    // readData.remove("sP");
 
-  if (!data["sDt"].isNull())
-  {
-    setDt = data["sDt"];
-  data.remove("sDt");
+    setDt = readData["sDt"];
+    // readData.remove("sDt");
+    readData.clear();
 
+    
   }
 
   rxAvailable = false;
-
 }
 
 void Tx() {
   // 送信するシリアルデータを整える
-  data["T"] = millis();
-  data["Dt"] = elapsedDt;
-  data["P"] = readPressure;
-  data["F"] = readFlowRate;
+  sendData["T"] = millis();
+  sendData["Dt"] = elapsedDt;
+  sendData["P"] = readPressure;
+  sendData["F"] = readFlowRate;
 
   //parametercheck
   Serial.print("setPressure: ");
