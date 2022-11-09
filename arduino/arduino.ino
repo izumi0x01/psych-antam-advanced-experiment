@@ -47,6 +47,12 @@ void setup() {
 void loop() {
 
 
+  // exp) {"sDt":5000,  "sP":20}
+  // シリアル通信
+  if (rxAvailable == true) {
+    Rx();
+  }
+
   // put your main code here, to run repeatedly:
 
   //フラグ処理:micros() - trigerTimingは、計測開始してからの経過時間。
@@ -60,17 +66,13 @@ void loop() {
 
   if (elapsedDt == -1) {
     trigerTiming = millis();
+    setDt = 0;
   }
 
   GetPressure();
   GetFlowRate();
 
 
-  // exp) {"sDt":50000,  "sP":20}
-  // シリアル通信
-  if (rxAvailable == true) {
-    Rx();
-  }
   Tx();
 
 
@@ -110,12 +112,12 @@ void Tx() {
   data["F"] = readFlowRate;
 
   //parametercheck
-  Serial.print("setPressure: ");
-  Serial.print(setPressure);
-  Serial.print(", setDt: ");
-  Serial.print(setDt);
-  Serial.print(", elapsedDt: ");
-  Serial.println(elapsedDt);
+  // Serial.print("setPressure: ");
+  // Serial.print(setPressure);
+  // Serial.print(", setDt: ");
+  // Serial.print(setDt);
+  // Serial.print(", elapsedDt: ");
+  // Serial.println(elapsedDt);
 }
 
 void GetPressure() {
