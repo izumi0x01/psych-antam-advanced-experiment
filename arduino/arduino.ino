@@ -21,6 +21,10 @@
 #include <ArduinoJson.h>
 #include <MsTimer2.h>
 
+#define readFlowRatePin 15  //A1
+#define readPressurePin 14  //A0
+#define setPressurePin 11
+
 // allocate the memory for the document
 // StaticJsonDocument<1024> inSerialData;
 // StaticJsonDocument<1024> outSerialData;
@@ -31,11 +35,9 @@ DynamicJsonDocument sendData(516);
 
 bool rxAvailable = false;
 long setDt = -1;
-long elapsedDt = 0;  //0[s] -> elapsedDt[s]までの間を推移
+long elapsedDt = -1;  //0[s] -> elapsedDt[s]までの間を推移
 unsigned long trigerTiming = 0;
 float setPressure = 0;
-float readPressure = 100.000001;
-float readFlowRate = 2.302038;
 
 
 void setup() {
@@ -60,9 +62,10 @@ void loop() {
   // 計測の経過時間が計測の設定時間を超えない限りは経過時間に計測時間が代入される。計測時間が過ぎると経過時間は-1になる。
   if (setDt != -1 && long(millis() - trigerTiming) <= setDt) {
     elapsedDt = millis() - trigerTiming;
-    SetPressure();
+    SetPressure(setPressure);
   } else {
     elapsedDt = -1;
+    SetPressure(0);
   }
 
   if (elapsedDt == -1) {
@@ -70,12 +73,7 @@ void loop() {
     setDt = -1;
   }
 
-  GetPressure();
-  GetFlowRate();
-
-
-  Tx();
-
+  Tx(GetPressure(), GetFlowRate());
 
   delay(50);
 }
@@ -101,34 +99,36 @@ void Rx() {
     setDt = readData["sDt"];
     // readData.remove("sDt");
     readData.clear();
-
-    
   }
 
   rxAvailable = false;
 }
 
-void Tx() {
+void Tx(float _readPressure, float _readFlowRate) {
   // 送信するシリアルデータを整える
   sendData["T"] = millis();
   sendData["Dt"] = elapsedDt;
-  sendData["P"] = readPressure;
-  sendData["F"] = readFlowRate;
+  sendData["P"] = _readPressure;
+  sendData["F"] = _readFlowRate;
 
   //parametercheck
-  Serial.print("setPressure: ");
-  Serial.print(setPressure);
-  Serial.print(", setDt: ");
-  Serial.print(setDt);
-  Serial.print(", elapsedDt: ");
-  Serial.println(elapsedDt);
+  // Serial.print("setPressure: ");
+  // Serial.print(setPressure);
+  // Serial.print(", setDt: ");
+  // Serial.print(setDt);
+  // Serial.print(", elapsedDt: ");
+  // Serial.println(elapsedDt);
 }
 
-void GetPressure() {
+float GetPressure() {
+  return analogRead(readPressurePin);
 }
 
-float SetPressure() {
+void SetPressure(float _val) {
+  _val = map(_val, 0, 1023, 0, 255);
+  analogWrite(setPressurePin, _val);
 }
 
 float GetFlowRate() {
+  return analogRead(readFlowRatePin);
 }
