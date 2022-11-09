@@ -24,7 +24,7 @@
 #define readFlowRatePin 15  //A1
 #define readPressurePin 14  //A0
 #define setPressurePin 11
-const unsigned long offsettime = 1200;
+const unsigned long offsettime = 1100;
 
 // allocate the memory for the document
 // StaticJsonDocument<1024> inSerialData;
@@ -54,7 +54,7 @@ void loop() {
   // exp) {"sDt":5000,  "sP":20}
   // シリアル通信
   if (rxAvailable == true) {
-    Rx();
+    Rx(&setDt, &setPressure);
   }
 
   // put your main code here, to run repeatedly:
@@ -67,16 +67,18 @@ void loop() {
     elapsedDt = -1;
   }
 
-  if (elapsedDt == -1) {
-    trigerTiming = millis();
-    setDt = -1;
-  }
-
   if (elapsedDt > 0) {
     SetPressure(setPressure);
   } else {
     SetPressure(0);
   }
+  
+  if(long(millis() - trigerTiming - offsettime) > setDt)
+  {
+    trigerTiming = millis();
+    setDt = -1;
+  }
+
 
   Tx(GetPressure(), GetFlowRate());
 
@@ -93,15 +95,15 @@ void OperateSerial() {
   Serial.println("");
 }
 
-void Rx() {
+void Rx(long *pt_setDt, float *pt_setPressure) {
   deserializeJson(readData, Serial);
 
   if (!readData.isNull()) {
 
-    setPressure = readData["sP"];
+    *pt_setPressure = readData["sP"];
     // readData.remove("sP");
 
-    setDt = readData["sDt"];
+    *pt_setDt = readData["sDt"];
     // readData.remove("sDt");
     readData.clear();
   }
