@@ -29,7 +29,7 @@
 DynamicJsonDocument data(1024);
 
 bool rxAvailable = false;
-long setDt = 0;
+long setDt = -1;
 long elapsedDt = 0;  //0[s] -> elapsedDt[s]までの間を推移
 unsigned long trigerTiming = 0;
 float setPressure = 0;
@@ -57,7 +57,7 @@ void loop() {
 
   //フラグ処理:micros() - trigerTimingは、計測開始してからの経過時間。
   // 計測の経過時間が計測の設定時間を超えない限りは経過時間に計測時間が代入される。計測時間が過ぎると経過時間は-1になる。
-  if (millis() - trigerTiming <= setDt) {
+  if (setDt != -1 && long(millis() - trigerTiming) <= setDt) {
     elapsedDt = millis() - trigerTiming;
     SetPressure();
   } else {
@@ -66,7 +66,7 @@ void loop() {
 
   if (elapsedDt == -1) {
     trigerTiming = millis();
-    setDt = 0;
+    setDt = -1;
   }
 
   GetPressure();
@@ -93,12 +93,18 @@ void Rx() {
   deserializeJson(data, Serial);
 
   if (!data["sP"].isNull())
+  {
+
     setPressure = data["sP"];
   data.remove("sP");
+  }
 
   if (!data["sDt"].isNull())
+  {
     setDt = data["sDt"];
   data.remove("sDt");
+
+  }
 
   rxAvailable = false;
 
@@ -112,12 +118,12 @@ void Tx() {
   data["F"] = readFlowRate;
 
   //parametercheck
-  // Serial.print("setPressure: ");
-  // Serial.print(setPressure);
-  // Serial.print(", setDt: ");
-  // Serial.print(setDt);
-  // Serial.print(", elapsedDt: ");
-  // Serial.println(elapsedDt);
+  Serial.print("setPressure: ");
+  Serial.print(setPressure);
+  Serial.print(", setDt: ");
+  Serial.print(setDt);
+  Serial.print(", elapsedDt: ");
+  Serial.println(elapsedDt);
 }
 
 void GetPressure() {
