@@ -24,7 +24,7 @@
 #define readFlowRatePin 15  //A1
 #define readPressurePin 14  //A0
 #define setPressurePin 11
-const unsigned long offsettime = 1100;
+const unsigned long offsettime = 3500;
 
 // allocate the memory for the document
 // StaticJsonDocument<1024> inSerialData;
@@ -48,10 +48,11 @@ void setup() {
   MsTimer2::start();
 }
 
+int counter = 0;
 void loop() {
 
 
-  // exp) {"sDt":5000,  "sP":20}
+  // exp) {"d":50,  "p":20}//5000ms,20%pa
   // シリアル通信
   if (rxAvailable == true) {
     Rx(&setDt, &setPressure);
@@ -72,9 +73,8 @@ void loop() {
   } else {
     SetPressure(0);
   }
-  
-  if(long(millis() - trigerTiming - offsettime) > setDt)
-  {
+
+  if (long(millis() - trigerTiming - offsettime) > setDt) {
     trigerTiming = millis();
     setDt = -1;
   }
@@ -82,7 +82,7 @@ void loop() {
 
   Tx(GetPressure(), GetFlowRate());
 
-  delay(50);
+  delay(100);
 }
 
 
@@ -96,14 +96,20 @@ void OperateSerial() {
 }
 
 void Rx(long *pt_setDt, float *pt_setPressure) {
+  
   deserializeJson(readData, Serial);
+  counter++;
+
+  Serial.println(counter);
 
   if (!readData.isNull()) {
 
-    *pt_setPressure = readData["sP"];
+    *pt_setPressure = readData["p"];
+    *pt_setPressure *= 0.01;
     // readData.remove("sP");
 
-    *pt_setDt = readData["sDt"];
+    *pt_setDt = readData["d"];
+    *pt_setDt *= 100;
     // readData.remove("sDt");
     readData.clear();
   }
@@ -113,8 +119,10 @@ void Rx(long *pt_setDt, float *pt_setPressure) {
 
 void Tx(float _readPressure, float _readFlowRate) {
   // 送信するシリアルデータを整える
-  sendData["T"] = millis();
-  sendData["Dt"] = elapsedDt;
+  sendData["t"] = millis();
+  //if (elapsedDt < 0)
+    //elapsedDt = -1;
+  sendData["d"] = elapsedDt;
   sendData["P"] = _readPressure;
   sendData["F"] = _readFlowRate;
 
