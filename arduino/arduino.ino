@@ -20,87 +20,80 @@
 
 #include <ArduinoJson.h>
 #include <MsTimer2.h>
+#include <limits.h>
+
 
 #define readFlowRatePin 15  //A1
 #define readPressurePin 14  //A0
 #define setPressurePin 11
-const unsigned long offsettime = 3500;
+const unsigned long offsettime = 3000;
 
 // allocate the memory for the document
 // StaticJsonDocument<1024> inSerialData;
 // StaticJsonDocument<1024> outSerialData;
 
 //メモリサイズが適切でないとJSONを正確に送れないぽい
-DynamicJsonDocument readData(516);
-DynamicJsonDocument sendData(516);
+StaticJsonDocument<64> readData;
+DynamicJsonDocument sendData(128);
 
-bool rxAvailable = false;
-long setDt = -1;
-long elapsedDt = -1;  //0[s] -> elapsedDt[s]までの間を推移
-unsigned long trigerTiming = 0;
+long measuringTime = -1;
+long elapsedDt = -1;  //trigerTiming[s] -> trigerTiming + elapsedDt[s]までの間を推移
+long trigerTiming = -1;
 float setPressure = 0;
-
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  MsTimer2::set(100, OperateSerial);
+  MsTimer2::set(100, InterruptSerial);
   MsTimer2::start();
+  pinMode(A0, INPUT);
+  pinMode(A1, INPUT);
 }
 
-int counter = 0;
 void loop() {
 
+  if (Serial.available() > 0) {
+    if (elapsedDt != -1)
+      goto label_goto;
 
-  // exp) {"d":50,  "p":20}//5000ms,20%pa
-  // シリアル通信
-  if (rxAvailable == true) {
-    Rx(&setDt, &setPressure);
+    Rx(&measuringTime, &setPressure);
+    //データがセットされたタイミングでtrigerが起動.
+    trigerTiming = now();
   }
 
-  // put your main code here, to run repeatedly:
+  label_goto:
 
-  //フラグ処理:micros() - trigerTimingは、計測開始してからの経過時間。
-  // 計測の経過時間が計測の設定時間を超えない限りは経過時間に計測時間が代入される。計測時間が過ぎると経過時間は-1になる。
-  if (setDt != -1 && long(millis() - trigerTiming - offsettime) <= setDt) {
-    elapsedDt = millis() - trigerTiming - offsettime;
-  } else {
-    elapsedDt = -1;
-  }
-
-  if (elapsedDt > 0) {
+  if (now() <= trigerTiming + measuringTime) {
+    elapsedDt = now() - trigerTiming;
     SetPressure(setPressure);
-  } else {
+  } else if (now() > trigerTiming + measuringTime) {
+    elapsedDt = -1;
+    trigerTiming = -1;
     SetPressure(0);
   }
 
-  if (long(millis() - trigerTiming - offsettime) > setDt) {
-    trigerTiming = millis();
-    setDt = -1;
-  }
-
-
   Tx(GetPressure(), GetFlowRate());
 
-  delay(100);
+  delay(5);
 }
 
-
-void OperateSerial() {
-  if (Serial.available() > 0) {
-    rxAvailable = true;
+long now() {
+  if (millis() > (unsigned long)(LONG_MAX)) {
+    //arduino止めるなど。
+  } else {
+    return long(millis());
   }
+}
+
+void InterruptSerial() {
 
   serializeJson(sendData, Serial);
   Serial.println("");
 }
 
-void Rx(long *pt_setDt, float *pt_setPressure) {
-  
-  deserializeJson(readData, Serial);
-  counter++;
+unsigned long Rx(long *pt_measuringTime, float *pt_setPressure) {
 
-  Serial.println(counter);
+  deserializeJson(readData, Serial);
 
   if (!readData.isNull()) {
 
@@ -108,20 +101,18 @@ void Rx(long *pt_setDt, float *pt_setPressure) {
     *pt_setPressure *= 0.01;
     // readData.remove("sP");
 
-    *pt_setDt = readData["d"];
-    *pt_setDt *= 100;
+    *pt_measuringTime = readData["d"];
+    *pt_measuringTime *= 100;
     // readData.remove("sDt");
     readData.clear();
   }
-
-  rxAvailable = false;
 }
 
 void Tx(float _readPressure, float _readFlowRate) {
-  // 送信するシリアルデータを整える
+  // 送信するシリアルデータを整える.送信は割り込み中に行う。
   sendData["t"] = millis();
   //if (elapsedDt < 0)
-    //elapsedDt = -1;
+  //elapsedDt = -1;
   sendData["d"] = elapsedDt;
   sendData["P"] = _readPressure;
   sendData["F"] = _readFlowRate;
@@ -129,8 +120,8 @@ void Tx(float _readPressure, float _readFlowRate) {
   //parametercheck
   // Serial.print("setPressure: ");
   // Serial.print(setPressure);
-  // Serial.print(", setDt: ");
-  // Serial.print(setDt);
+  // Serial.print(", measuringTime: ");
+  // Serial.print(measuringTime);
   // Serial.print(", elapsedDt: ");
   // Serial.println(elapsedDt);
 }
@@ -140,7 +131,7 @@ float GetPressure() {
 }
 
 void SetPressure(float _val) {
-  _val = map(_val, 0, 1023, 0, 255);
+  _val = map(_val, 0, 100, 0, 255);
   analogWrite(setPressurePin, _val);
 }
 
