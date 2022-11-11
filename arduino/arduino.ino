@@ -38,7 +38,7 @@ float setPressure = 0;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  MsTimer2::set(50, InterruptSerial);
+  MsTimer2::set(30, InterruptSerial);
   MsTimer2::start();
   pinMode(A0, INPUT);
   pinMode(A1, INPUT);
@@ -46,14 +46,14 @@ void setup() {
 
 void loop() {
 
-  Serial.print("Serial.available() : ");
-  Serial.println(Serial.available());
-  Serial.print("Serial.peek() : ");
-  Serial.println(Serial.peek());
-  
+  // Serial.println("---InLoop---");
+  // Serial.print("Serial.available() : ");
+  // Serial.println(Serial.available());
+  // Serial.print("Serial.peek() : ");
+  // Serial.println(Serial.peek());
+
   if (elapsedDt == -1) {
     Rx(&measuringTime, &setPressure);
-    //データがセットされたタイミングでtrigerが起動.
   }
 
   if (now() <= trigerredTime + measuringTime) {
@@ -67,7 +67,7 @@ void loop() {
 
   Tx(GetPressure(), GetFlowRate());
 
-  delay(50);
+  delay(30);
 }
 
 long now() {
@@ -82,18 +82,41 @@ void InterruptSerial() {
 
   serializeJson(sendData, Serial);
   Serial.println("");
-    
 }
 
 // exp) {"d":1000,  "p":200},{"d":1000,  "p":200,  "_":200}
 void Rx(long *pt_measuringTime, float *pt_setPressure) {
 
 
-
   if (Serial.available() == 0)
     return;
 
+  // Serial.println("---OutLoop---");
+  // Serial.print("Serial.available() : ");
+  // Serial.println(Serial.available());
+  // Serial.print("Serial.peek() : ");
+  // Serial.println(Serial.peek());
+
   deserializeJson(readData, Serial);
+
+  //デシリアライズ後に処理が1000msかかってしまうのは、エラーによりタイムアウトが発生している。
+  while (Serial.peek() == 13 || Serial.peek() == 10 ) {
+    Serial.read();
+  }
+
+  while (Serial.peek() == 34 || Serial.peek() == 32) {
+    Serial.read();
+  }
+
+  while (Serial.peek() == 123 || Serial.peek() == 125) {
+    Serial.read();
+  }
+
+  // Serial.println("---OutLoop---");
+  // Serial.print("Serial.available() : ");
+  // Serial.println(Serial.available());
+  // Serial.print("Serial.peek() : ");
+  // Serial.println(Serial.peek());
 
   long _d = readData["d"];
   float _p = readData["p"];
@@ -116,11 +139,11 @@ void Rx(long *pt_measuringTime, float *pt_setPressure) {
     readData.clear();
   }
 
-  //汚いが...deserializeは開始と終わりで値がそれぞれ値が代入されるようにできているらしい（？）。
-  //開始時のデータだけを読み取って、2回目はパスする。
+  //エラーが出てタイムアウトした場合は,JSONOBJECTの要素に0要素が格納される。エラー処理。
   if (_d == long(0) || _p == float(0))
     return;
 
+  //データがセットされたタイミングでtrigerが起動.
   trigerredTime = now();
 }
 
