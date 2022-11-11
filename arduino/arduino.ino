@@ -27,8 +27,9 @@
 #define setPressurePin 9
 
 //メモリサイズが適切でないとJSONを正確に送れないぽい
-StaticJsonDocument<64> readData;
+DynamicJsonDocument readData(32);
 DynamicJsonDocument sendData(128);
+DeserializationError err;
 
 long measuringTime = -1;
 long elapsedDt = -1;  //trigerredTime[s] -> trigerredTime + elapsedDt[s]までの間を推移
@@ -38,10 +39,15 @@ float setPressure = 0;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  sendData["Err"] = 0;
+  Serial.setTimeout(10);
+
   MsTimer2::set(30, InterruptSerial);
   MsTimer2::start();
+
   pinMode(A0, INPUT);
   pinMode(A1, INPUT);
+
 }
 
 void loop() {
@@ -84,39 +90,75 @@ void InterruptSerial() {
   Serial.println("");
 }
 
-// exp) {"d":1000,  "p":200},{"d":1000,  "p":200,  "_":200}
+// exp)
+//      {"d":1000,  "p":200}
+//     ,{"d":1000,  "p":200,  "_":200}
 void Rx(long *pt_measuringTime, float *pt_setPressure) {
 
 
   if (Serial.available() == 0)
     return;
 
-  // Serial.println("---OutLoop---");
-  // Serial.print("Serial.available() : ");
-  // Serial.println(Serial.available());
-  // Serial.print("Serial.peek() : ");
+  // Serial.println("---OutLoop1---");
+  // Serial.print("Ser.avl() : ");
+  // Serial.print(Serial.available());
+  // Serial.print(", Ser.peek() : ");
   // Serial.println(Serial.peek());
 
-  deserializeJson(readData, Serial);
-
-  //デシリアライズ後に処理が1000msかかってしまうのは、エラーによりタイムアウトが発生している。
-  while (Serial.peek() == 13 || Serial.peek() == 10 ) {
-    Serial.read();
+  if (Serial.peek() == 13 || Serial.peek() == 10 || Serial.peek() == 32 || Serial.peek() == 34 || Serial.peek() == 125) {
+    sendData["Err"] = "2";//"IncompleteInput"
+  } else {
+    sendData["Err"] = 0;
   }
 
-  while (Serial.peek() == 34 || Serial.peek() == 32) {
-    Serial.read();
+  delay(5);
+  err = deserializeJson(readData, Serial);
+  if (err) {
+    // Serial.print(F("deserializeJson() failed: "));
+    // Serial.println(err.c_str());
+
+    if(String(err.c_str()).equalsIgnoreCase("InvalidInput"))
+      sendData["Err"] = 1;
+    if(String(err.c_str()).equalsIgnoreCase("IncompleteInput"))
+      sendData["Err"] = 2;
+    if(String(err.c_str()).equalsIgnoreCase("EmptyInput"))
+      sendData["Err"] = 3;
+    
+  } else {
+    sendData["Err"] = 0;
   }
 
-  while (Serial.peek() == 123 || Serial.peek() == 125) {
+
+
+//デシリアライズ後に処理が1000msかかってしまうのは、エラーによりタイムアウトが発生している。
+confirm_pos:
+
+  if (Serial.peek() == 13) {
     Serial.read();
+    goto confirm_pos;
+  } else if (Serial.peek() == 10) {
+    Serial.read();
+    goto confirm_pos;
+  } else if (Serial.peek() == 123) {
+    Serial.read();
+    goto confirm_pos;
+  } else if (Serial.peek() == 34) {
+    Serial.read();
+    goto confirm_pos;
+  } else if (Serial.peek() == 125) {
+    Serial.read();
+    goto confirm_pos;
+  } else if (Serial.peek() == 32) {
+    Serial.read();
+    goto confirm_pos;
   }
 
-  // Serial.println("---OutLoop---");
-  // Serial.print("Serial.available() : ");
-  // Serial.println(Serial.available());
-  // Serial.print("Serial.peek() : ");
-  // Serial.println(Serial.peek());
+
+    // Serial.println("---OutLoop2---");
+    // Serial.print("Serial.available() : ");
+    // Serial.print(Serial.available());
+    // Serial.print(", Serial.peek() : ");
+    // Serial.println(Serial.peek());
 
   long _d = readData["d"];
   float _p = readData["p"];
@@ -145,6 +187,7 @@ void Rx(long *pt_measuringTime, float *pt_setPressure) {
 
   //データがセットされたタイミングでtrigerが起動.
   trigerredTime = now();
+  sendData["Err"] = 0;
 }
 
 void Tx(float _readPressure, float _readFlowRate) {
