@@ -44,7 +44,7 @@ float setPressure = 0;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  MsTimer2::set(100, InterruptSerial);
+  MsTimer2::set(20, InterruptSerial);
   MsTimer2::start();
   pinMode(A0, INPUT);
   pinMode(A1, INPUT);
