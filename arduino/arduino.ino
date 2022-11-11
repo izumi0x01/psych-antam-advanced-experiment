@@ -22,29 +22,24 @@
 #include <MsTimer2.h>
 #include <limits.h>
 
-
 #define readFlowRatePin 15  //A1
 #define readPressurePin 14  //A0
-#define setPressurePin 11
-const unsigned long offsettime = 3000;
-
-// allocate the memory for the document
-// StaticJsonDocument<1024> inSerialData;
-// StaticJsonDocument<1024> outSerialData;
+#define setPressurePin 9
 
 //メモリサイズが適切でないとJSONを正確に送れないぽい
 StaticJsonDocument<64> readData;
 DynamicJsonDocument sendData(128);
 
 long measuringTime = -1;
-long elapsedDt = -1;  //trigerTiming[s] -> trigerTiming + elapsedDt[s]までの間を推移
-long trigerTiming = -1;
+long elapsedDt = -1;  //trigerredTime[s] -> trigerredTime + elapsedDt[s]までの間を推移
+long trigerredTime = -1;
 float setPressure = 0;
+const long offsetTime = 100000;
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  MsTimer2::set(20, InterruptSerial);
+  MsTimer2::set(50, InterruptSerial);
   MsTimer2::start();
   pinMode(A0, INPUT);
   pinMode(A1, INPUT);
@@ -52,29 +47,26 @@ void setup() {
 
 void loop() {
 
-  if (Serial.available() > 0) {
-    if (elapsedDt != -1)
-      goto label_goto;
-
-    Rx(&measuringTime, &setPressure);
-    //データがセットされたタイミングでtrigerが起動.
-    trigerTiming = now();
+  if (elapsedDt == -1) {
+    if (Serial.available() > 0) {
+      Rx(&measuringTime, &setPressure);
+      //データがセットされたタイミングでtrigerが起動.
+      trigerredTime = now();
+    }
   }
 
-  label_goto:
-
-  if (now() <= trigerTiming + measuringTime) {
-    elapsedDt = now() - trigerTiming;
+  if (now() <= trigerredTime + measuringTime) {
+    elapsedDt = now() - trigerredTime;
     SetPressure(setPressure);
-  } else if (now() > trigerTiming + measuringTime) {
+  } else if (now() > trigerredTime + measuringTime) {
     elapsedDt = -1;
-    trigerTiming = -1;
+    trigerredTime = -1;
     SetPressure(0);
   }
 
   Tx(GetPressure(), GetFlowRate());
 
-  delay(5);
+  delay(50);
 }
 
 long now() {
@@ -91,18 +83,24 @@ void InterruptSerial() {
   Serial.println("");
 }
 
-unsigned long Rx(long *pt_measuringTime, float *pt_setPressure) {
+void Rx(long *pt_measuringTime, float *pt_setPressure) {
 
+  // {"d":1000,  "p":200}
   deserializeJson(readData, Serial);
+
+  //汚いが...deserializeは開始と終わりで値がそれぞれ値が代入されるようにできているらしい（？）。
+  //開始時のデータだけを読み取って、2回目はパスする。
+  //そのため、loopのdelayを極端に短くすると、analog出力などがうまくできない...
 
   if (!readData.isNull()) {
 
     *pt_setPressure = readData["p"];
-    *pt_setPressure *= 0.01;
+    // *pt_setPressure *= 0.01;
     // readData.remove("sP");
 
     *pt_measuringTime = readData["d"];
-    *pt_measuringTime *= 100;
+    // *pt_measuringTime *= 100;
+
     // readData.remove("sDt");
     readData.clear();
   }
@@ -131,7 +129,7 @@ float GetPressure() {
 }
 
 void SetPressure(float _val) {
-  _val = map(_val, 0, 100, 0, 255);
+  _val = map(_val, 0, 1000, 0, 255);
   analogWrite(setPressurePin, _val);
 }
 
