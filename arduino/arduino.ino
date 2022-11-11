@@ -34,7 +34,6 @@ long measuringTime = -1;
 long elapsedDt = -1;  //trigerredTime[s] -> trigerredTime + elapsedDt[s]までの間を推移
 long trigerredTime = -1;
 float setPressure = 0;
-const long offsetTime = 100000;
 
 void setup() {
   // put your setup code here, to run once:
@@ -47,12 +46,14 @@ void setup() {
 
 void loop() {
 
+  Serial.print("Serial.available() : ");
+  Serial.println(Serial.available());
+  Serial.print("Serial.peek() : ");
+  Serial.println(Serial.peek());
+  
   if (elapsedDt == -1) {
-    if (Serial.available() > 0) {
-      Rx(&measuringTime, &setPressure);
-      //データがセットされたタイミングでtrigerが起動.
-      trigerredTime = now();
-    }
+    Rx(&measuringTime, &setPressure);
+    //データがセットされたタイミングでtrigerが起動.
   }
 
   if (now() <= trigerredTime + measuringTime) {
@@ -81,16 +82,27 @@ void InterruptSerial() {
 
   serializeJson(sendData, Serial);
   Serial.println("");
+    
 }
 
+// exp) {"d":1000,  "p":200},{"d":1000,  "p":200,  "_":200}
 void Rx(long *pt_measuringTime, float *pt_setPressure) {
 
-  // {"d":1000,  "p":200}
+
+
+  if (Serial.available() == 0)
+    return;
+
   deserializeJson(readData, Serial);
 
-  //汚いが...deserializeは開始と終わりで値がそれぞれ値が代入されるようにできているらしい（？）。
-  //開始時のデータだけを読み取って、2回目はパスする。
-  //そのため、loopのdelayを極端に短くすると、analog出力などがうまくできない...
+  long _d = readData["d"];
+  float _p = readData["p"];
+
+  // Serial.println("changedData!");
+  // Serial.print("d:");
+  // Serial.print(_d);
+  // Serial.print(" ,p:");
+  // Serial.println(_p);
 
   if (!readData.isNull()) {
 
@@ -101,9 +113,15 @@ void Rx(long *pt_measuringTime, float *pt_setPressure) {
     *pt_measuringTime = readData["d"];
     // *pt_measuringTime *= 100;
 
-    // readData.remove("sDt");
     readData.clear();
   }
+
+  //汚いが...deserializeは開始と終わりで値がそれぞれ値が代入されるようにできているらしい（？）。
+  //開始時のデータだけを読み取って、2回目はパスする。
+  if (_d == long(0) || _p == float(0))
+    return;
+
+  trigerredTime = now();
 }
 
 void Tx(float _readPressure, float _readFlowRate) {
