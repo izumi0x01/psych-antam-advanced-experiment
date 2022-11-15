@@ -22,9 +22,9 @@
 #include <MsTimer2.h>
 #include <limits.h>
 
-#define readFlowRatePin 15  //A1
-#define readPressurePin 14  //A0
-#define setPressurePin 9
+#define readFlowRatePin 55  //A1
+#define readPressurePin 54  //A0
+#define setPressurePin 8
 
 //メモリサイズが適切でないとJSONを正確に送れないぽい
 DynamicJsonDocument readData(32);
@@ -32,19 +32,23 @@ DynamicJsonDocument sendData(128);
 DeserializationError err;
 
 long measuringTime = -1;
-long elapsedDt = -1;  //trigerredTime[s] -> trigerredTime + elapsedDt[s]までの間を推移
+//trigerredTime[s] -> trigerredTime + long measuringTime[s]までの間を推移
+long elapsedDt = -1;  
 long trigerredTime = -1;
 float setPressure = 0;
 
 void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(9600);
+  
+  //シリアル通信の初期化
+  Serial.begin(460800);
   sendData["Err"] = 0;
   Serial.setTimeout(10);
 
-  MsTimer2::set(30, InterruptSerial);
+  //タイマ割り込みの設定
+  MsTimer2::set(20, InterruptSerial);
   MsTimer2::start();
 
+  //ピンモードの設定
   pinMode(A0, INPUT);
   pinMode(A1, INPUT);
 
@@ -73,7 +77,7 @@ void loop() {
 
   Tx(GetPressure(), GetFlowRate());
 
-  delay(30);
+  delay(20);
 }
 
 long now() {
@@ -90,8 +94,14 @@ void InterruptSerial() {
   Serial.println("");
 }
 
-// exp)
+// exp) JSONを送る例
+//  {"d":500,  "p":200}
+// {"d":100,  "p":400}
 //      {"d":1000,  "p":200}
+//      {"d":1000,  "p":500}
+//      {"d":1000,  "p":100}
+//      {"d":500,  "p":500}
+//      {"d":500,  "p":200}
 //     ,{"d":1000,  "p":200,  "_":200}
 void Rx(long *pt_measuringTime, float *pt_setPressure) {
 
@@ -106,7 +116,7 @@ void Rx(long *pt_measuringTime, float *pt_setPressure) {
   // Serial.println(Serial.peek());
 
   if (Serial.peek() == 13 || Serial.peek() == 10 || Serial.peek() == 32 || Serial.peek() == 34 || Serial.peek() == 125) {
-    sendData["Err"] = "2";//"IncompleteInput"
+    sendData["Err"] = "1";//"InvalidInput"
   } else {
     sendData["Err"] = 0;
   }
@@ -192,11 +202,11 @@ confirm_pos:
 
 void Tx(float _readPressure, float _readFlowRate) {
   // 送信するシリアルデータを整える.送信は割り込み中に行う。
-  sendData["t"] = millis();
-  //if (elapsedDt < 0)
-  //elapsedDt = -1;
-  sendData["d"] = elapsedDt;
-  sendData["P"] = _readPressure;
+  // sendData["t"] = millis();
+  // //if (elapsedDt < 0)
+  // //elapsedDt = -1;
+   sendData["d"] = elapsedDt;
+  // sendData["P"] = _readPressure;
   sendData["F"] = _readFlowRate;
 
   //parametercheck
