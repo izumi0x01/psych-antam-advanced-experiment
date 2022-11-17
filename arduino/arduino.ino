@@ -40,7 +40,7 @@ float setPressure = 0;
 void setup() {
   
   //シリアル通信の初期化
-  Serial.begin(460800);
+  Serial.begin(115200);
   sendData["Err"] = 0;
   Serial.setTimeout(10);
 
