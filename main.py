@@ -11,6 +11,7 @@ myAnalyze = myAnalyze.Analyze()
 mySerial = mySerial.Serial()
 
 try:
+    print("[measuring]")
     while True:
         # serial通信でデータを取ってくる
         data: dict = mySerial.GetSerialData()
