@@ -1,9 +1,10 @@
-
 #クラスのインポート
-import analyze
-import vision
-import serial
+from asyncio.windows_events import NULL
+import myAnalyze
+import myVision
+import mySerial
 
-_vision = vision.Vision()
-_vision.camera_window()
- 
+_myVision = myVision.Vision()
+_myVision.camera_window()
+
+_mySerial = mySerial.Serial()
