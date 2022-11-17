@@ -18,14 +18,24 @@ class Serial:
     def __init__(self):
         self._data: dict = {}
         ports = list(list_ports.comports())
+        print("--------COMPORT CONFIGURATION--------")
         for p in ports:
           try:
-            self.openSerial = serial.Serial(self.COMPORT, self.BOUDRATE, timeout=None)
+            openserial = serial.Serial(p.device)
             print(p.device , "can use.")
+            openserial.close()
+            if p.manufacturer == "Arduino LLC (www.arduino.cc)":
+              #print("this is arduino.")
+              self.openSerial = serial.Serial(
+                p.device, self.BOUDRATE, timeout=None)
+              print("(",p.device,"is ready for arduino",")")
+            
+
           except(OSError, serial.SerialException):
             print(p.device, "can't use.")
+        print("-------------------------------------")
+        
 
-    # self._openSerail = serial.Serial('/dev/ttyACM0', self.baudrate, timeout=None)
     # データが一列ずつ送られてくる。その送られたデータを返り値として送る。
     # 送るべきデータがシリアルポートに到着すれば、文字列のデータを返り値として送る。
 
@@ -98,11 +108,16 @@ class Serial:
         return result
 
     def __del__(self):
+      try:
         self.openSerial.close()
+      except AttributeError:
         pass
 
 
 if __name__ == "__main__":
     s = Serial()
+    
+    # windowsで、ポートの利用状況を詳しく調べる。
+    #s.WinSerialPortsDescripition()
+
     # s.PrintData()
-    # s.WinSerialPortsDescripition()
