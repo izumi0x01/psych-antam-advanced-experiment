@@ -20,108 +20,181 @@
 
 #include <ArduinoJson.h>
 #include <MsTimer2.h>
+#include <limits.h>
 
 #define readFlowRatePin 15  //A1
 #define readPressurePin 14  //A0
-#define setPressurePin 11
-const unsigned long offsettime = 3500;
-
-// allocate the memory for the document
-// StaticJsonDocument<1024> inSerialData;
-// StaticJsonDocument<1024> outSerialData;
+#define setPressurePin 9
 
 //メモリサイズが適切でないとJSONを正確に送れないぽい
-DynamicJsonDocument readData(516);
-DynamicJsonDocument sendData(516);
+DynamicJsonDocument readData(32);
+DynamicJsonDocument sendData(128);
+DeserializationError err;
 
-bool rxAvailable = false;
-long setDt = -1;
-long elapsedDt = -1;  //0[s] -> elapsedDt[s]までの間を推移
-unsigned long trigerTiming = 0;
+long measuringTime = -1;
+long elapsedDt = -1;  //trigerredTime[s] -> trigerredTime + elapsedDt[s]までの間を推移
+long trigerredTime = -1;
 float setPressure = 0;
-
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  MsTimer2::set(100, OperateSerial);
+  sendData["Err"] = 0;
+  Serial.setTimeout(10);
+
+  MsTimer2::set(30, InterruptSerial);
   MsTimer2::start();
+
+  pinMode(A0, INPUT);
+  pinMode(A1, INPUT);
+
 }
 
-int counter = 0;
 void loop() {
 
+  // Serial.println("---InLoop---");
+  // Serial.print("Serial.available() : ");
+  // Serial.println(Serial.available());
+  // Serial.print("Serial.peek() : ");
+  // Serial.println(Serial.peek());
 
-  // exp) {"d":50,  "p":20}//5000ms,20%pa
-  // シリアル通信
-  if (rxAvailable == true) {
-    Rx(&setDt, &setPressure);
+  if (elapsedDt == -1) {
+    Rx(&measuringTime, &setPressure);
   }
 
-  // put your main code here, to run repeatedly:
-
-  //フラグ処理:micros() - trigerTimingは、計測開始してからの経過時間。
-  // 計測の経過時間が計測の設定時間を超えない限りは経過時間に計測時間が代入される。計測時間が過ぎると経過時間は-1になる。
-  if (setDt != -1 && long(millis() - trigerTiming - offsettime) <= setDt) {
-    elapsedDt = millis() - trigerTiming - offsettime;
-  } else {
-    elapsedDt = -1;
-  }
-
-  if (elapsedDt > 0) {
+  if (now() <= trigerredTime + measuringTime) {
+    elapsedDt = now() - trigerredTime;
     SetPressure(setPressure);
-  } else {
+  } else if (now() > trigerredTime + measuringTime) {
+    elapsedDt = -1;
+    trigerredTime = -1;
     SetPressure(0);
   }
 
-  if (long(millis() - trigerTiming - offsettime) > setDt) {
-    trigerTiming = millis();
-    setDt = -1;
-  }
-
-
   Tx(GetPressure(), GetFlowRate());
 
-  delay(100);
+  delay(30);
 }
 
-
-void OperateSerial() {
-  if (Serial.available() > 0) {
-    rxAvailable = true;
+long now() {
+  if (millis() > (unsigned long)(LONG_MAX)) {
+    //arduino止めるなど。
+  } else {
+    return long(millis());
   }
+}
+
+void InterruptSerial() {
 
   serializeJson(sendData, Serial);
   Serial.println("");
 }
 
-void Rx(long *pt_setDt, float *pt_setPressure) {
-  
-  deserializeJson(readData, Serial);
-  counter++;
+// exp)
+//      {"d":1000,  "p":200}
+//     ,{"d":1000,  "p":200,  "_":200}
+void Rx(long *pt_measuringTime, float *pt_setPressure) {
 
-  Serial.println(counter);
+
+  if (Serial.available() == 0)
+    return;
+
+  // Serial.println("---OutLoop1---");
+  // Serial.print("Ser.avl() : ");
+  // Serial.print(Serial.available());
+  // Serial.print(", Ser.peek() : ");
+  // Serial.println(Serial.peek());
+
+  if (Serial.peek() == 13 || Serial.peek() == 10 || Serial.peek() == 32 || Serial.peek() == 34 || Serial.peek() == 125) {
+    sendData["Err"] = "2";//"IncompleteInput"
+  } else {
+    sendData["Err"] = 0;
+  }
+
+  delay(5);
+  err = deserializeJson(readData, Serial);
+  if (err) {
+    // Serial.print(F("deserializeJson() failed: "));
+    // Serial.println(err.c_str());
+
+    if(String(err.c_str()).equalsIgnoreCase("InvalidInput"))
+      sendData["Err"] = 1;
+    if(String(err.c_str()).equalsIgnoreCase("IncompleteInput"))
+      sendData["Err"] = 2;
+    if(String(err.c_str()).equalsIgnoreCase("EmptyInput"))
+      sendData["Err"] = 3;
+    
+  } else {
+    sendData["Err"] = 0;
+  }
+
+
+
+//デシリアライズ後に処理が1000msかかってしまうのは、エラーによりタイムアウトが発生している。
+confirm_pos:
+
+  if (Serial.peek() == 13) {
+    Serial.read();
+    goto confirm_pos;
+  } else if (Serial.peek() == 10) {
+    Serial.read();
+    goto confirm_pos;
+  } else if (Serial.peek() == 123) {
+    Serial.read();
+    goto confirm_pos;
+  } else if (Serial.peek() == 34) {
+    Serial.read();
+    goto confirm_pos;
+  } else if (Serial.peek() == 125) {
+    Serial.read();
+    goto confirm_pos;
+  } else if (Serial.peek() == 32) {
+    Serial.read();
+    goto confirm_pos;
+  }
+
+
+    // Serial.println("---OutLoop2---");
+    // Serial.print("Serial.available() : ");
+    // Serial.print(Serial.available());
+    // Serial.print(", Serial.peek() : ");
+    // Serial.println(Serial.peek());
+
+  long _d = readData["d"];
+  float _p = readData["p"];
+
+  // Serial.println("changedData!");
+  // Serial.print("d:");
+  // Serial.print(_d);
+  // Serial.print(" ,p:");
+  // Serial.println(_p);
 
   if (!readData.isNull()) {
 
     *pt_setPressure = readData["p"];
-    *pt_setPressure *= 0.01;
+    // *pt_setPressure *= 0.01;
     // readData.remove("sP");
 
-    *pt_setDt = readData["d"];
-    *pt_setDt *= 100;
-    // readData.remove("sDt");
+    *pt_measuringTime = readData["d"];
+    // *pt_measuringTime *= 100;
+
     readData.clear();
   }
 
-  rxAvailable = false;
+  //エラーが出てタイムアウトした場合は,JSONOBJECTの要素に0要素が格納される。エラー処理。
+  if (_d == long(0) || _p == float(0))
+    return;
+
+  //データがセットされたタイミングでtrigerが起動.
+  trigerredTime = now();
+  sendData["Err"] = 0;
 }
 
 void Tx(float _readPressure, float _readFlowRate) {
-  // 送信するシリアルデータを整える
+  // 送信するシリアルデータを整える.送信は割り込み中に行う。
   sendData["t"] = millis();
   //if (elapsedDt < 0)
-    //elapsedDt = -1;
+  //elapsedDt = -1;
   sendData["d"] = elapsedDt;
   sendData["P"] = _readPressure;
   sendData["F"] = _readFlowRate;
@@ -129,8 +202,8 @@ void Tx(float _readPressure, float _readFlowRate) {
   //parametercheck
   // Serial.print("setPressure: ");
   // Serial.print(setPressure);
-  // Serial.print(", setDt: ");
-  // Serial.print(setDt);
+  // Serial.print(", measuringTime: ");
+  // Serial.print(measuringTime);
   // Serial.print(", elapsedDt: ");
   // Serial.println(elapsedDt);
 }
@@ -140,7 +213,7 @@ float GetPressure() {
 }
 
 void SetPressure(float _val) {
-  _val = map(_val, 0, 1023, 0, 255);
+  _val = map(_val, 0, 1000, 0, 255);
   analogWrite(setPressurePin, _val);
 }
 
