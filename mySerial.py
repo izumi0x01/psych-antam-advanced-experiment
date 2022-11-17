@@ -17,46 +17,40 @@ class Serial:
 
     def __init__(self):
         self._data: dict = {}
+        self.openSerial = NULL
         ports = list(list_ports.comports())
         print("--------COMPORT CONFIGURATION--------")
         for p in ports:
-          try:
-            openserial = serial.Serial(p.device)
-            print(p.device , "can use.")
-            openserial.close()
-            if p.manufacturer == "Arduino LLC (www.arduino.cc)":
-              #print("this is arduino.")
-              self.openSerial = serial.Serial(
-                p.device, self.BOUDRATE, timeout=None)
-              print("(",p.device,"is ready for arduino",")")
-            
-
-          except(OSError, serial.SerialException):
-            print(p.device, "can't use.")
+            try:
+                openserial = serial.Serial(p.device)
+                print(p.device, "can use.")
+                openserial.close()
+                if p.manufacturer == "Arduino LLC (www.arduino.cc)":
+                    self._openSerial = serial.Serial(
+                        p.device, self.BOUDRATE, timeout=None)
+                    print("(", p.device, "is ready for arduino", ")")
+            except (OSError, serial.SerialException):
+                print(p.device, "can't use.")
         print("-------------------------------------")
-        
 
-    # データが一列ずつ送られてくる。その送られたデータを返り値として送る。
-    # 送るべきデータがシリアルポートに到着すれば、文字列のデータを返り値として送る。
+    def PrintData(self):
+        if self._openSerial == NULL:
+            return False
+        while True:
+            self.ReadSerialData()
+
+            if self._data != NULL:
+                print("PC時間:", datetime.datetime.now(), ",生データ:", self._data)
+            else:
+                continue
 
     def ReadSerialData(self):
-        if self._openSerail.in_waiting > 0:
-            rawData = self._openSerail.readline()
+        if self._openSerial.in_waiting > 0:
+            rawData = self._openSerial.readline()
             decodedData = rawData.decode()
             self._data = json.loads(decodedData)
         else:
             self._data = NULL
-
-    def PrintData(self):
-        while 1:
-            self.ReadSerialData()
-            if self._data != NULL:
-                print("PC時間:", end="")
-                print(datetime.datetime.now(), end="")
-                print(",生データ:", end="")
-                print(self._data)
-            else:
-                continue
 
     def WinSerialPortsDescripition(self):
         comports = list_ports.comports()
@@ -108,16 +102,16 @@ class Serial:
         return result
 
     def __del__(self):
-      try:
-        self.openSerial.close()
-      except AttributeError:
-        pass
+        try:
+            self._openSerial.close()
+        except AttributeError:
+            pass
 
 
 if __name__ == "__main__":
     s = Serial()
-    
-    # windowsで、ポートの利用状況を詳しく調べる。
-    #s.WinSerialPortsDescripition()
 
-    # s.PrintData()
+    # windowsで、ポートの利用状況を詳しく調べる。
+    # s.WinSerialPortsDescripition()
+
+    s.PrintData()
