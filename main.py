@@ -3,23 +3,35 @@ from asyncio.windows_events import NULL
 import myAnalyze
 import myVision
 import mySerial
+import myInputWindow
 import sys
-
-# initialize
-myVision = myVision.Vision()
-myAnalyze = myAnalyze.Analyze()
-mySerial = mySerial.Serial()
+import tkinter as tk
 
 try:
-    print("[measuring]")
+    # initialize
+    mySerial = mySerial.Serial()
+    mySerial.ConfirmateComPort()
+    # myAnalyze = myAnalyze.Analyze()
+    root = tk.Tk()
+    myapp = myInputWindow.InputWindow(root, mySerial)
+    # myVision = myVision.Vision()
+
+    print("[I'm measuring now...]")
+
     while True:
-        # serial通信でデータを取ってくる
-        data: dict = mySerial.GetSerialData()
-        # コンソール画面でデータの流れを見たい場合は、以下のコメントをコメントアウトする
-        # mySerial.PrintSerialData()
-        myAnalyze.writeRowToCSV(data)
-except KeyboardInterrupt:
+
+        myapp.update_idletasks()
+        myapp.update()
+
+        # mySerial.WriteSerialData()
+
+        # data: dict = mySerial.GetSerialData()
+        # if data != NULL:
+        #     myAnalyze.writeRowToCSV(data)
+
     # Ctrl-Cでプログラムの終了
+
+except KeyboardInterrupt:
     print("[exit](Ctrl-C interrupted)")
     sys.exit()
 

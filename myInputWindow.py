@@ -1,10 +1,36 @@
+import sys
 import tkinter as tk
+import mySerial
+import time
 
 
 class InputWindow(tk.Frame):
 
-    def __init__(self, root, inputPressure: float = 0.0, inputDeltaTime: int = 0):
+    @property
+    def InputPressure(self):
+        return self.__pressure
+
+    @InputPressure.setter
+    def InputPressure(self, value):
+        if value != '':
+            self.__pressure = value
+
+    @property
+    def InputDeltaTime(self):
+        return self.__deltatime
+
+    @InputDeltaTime.setter
+    def InputDeltaTime(self, value):
+        if value != '':
+            self.__deltatime = value
+
+    def __init__(self, root, _mySerial):
         super().__init__(root)
+
+        self.__root = root
+        self.__mySerial = _mySerial
+        self.__pressure: float = 0.0
+        self.__deltatime: int = 0
 
         root.option_add('*font', 'ＭＳゴシック 22')
         root.title("装置との通信用窓")
@@ -48,44 +74,15 @@ class InputWindow(tk.Frame):
         self.Button = tk.Button(
             self.tf, text='送信', bg='lightpink', bd=2)
         self.Button.grid(column=0, columnspan=2, row=3, sticky='e')
-        self.Button.bind("<Button-1>", self.print_contents)
+        self.Button.bind("<Button-1>", self.SendButtonEventHandler)
 
-    def print_contents(self, event):
-        print("Hi. The current entry content is:")
+    def SendButtonEventHandler(self, event):
+        self.InputPressure = self.pEntry.get()
+        self.InputDeltaTime = self.dtEntry.get()
+        self.__mySerial.WriteSerialData(self.__pressure, self.__deltatime)
 
-    def InputPressureHandler():
-        pass
-
-    def InputDeltaTimeHandler():
-        pass
-
-
-class ValueStrager():
-    def __init__(self):
-        self.__pressure: float = 0.0
-        self.__deltatime: int = 0
-
-    # # 引数にクラスオブジェクトを入れると、勝手に変数を文字列に変換してくれるやつ
-    # def __str__(self):
-    #     return self.message
-
-    @property
-    def Pressure(self):
-        return self.__pressure
-
-    @Pressure.setter
-    def Pressure(self, value):
-        if value != '':
-            self.__pressure = value
-
-    @property
-    def DeltaTime(self):
-        return self.__deltatime
-
-    @DeltaTime.setter
-    def DeltaTime(self, value):
-        if value != '':
-            self.__deltatime = value
+    def __del__(self):
+        self.__root.destroy()
 
 
 if __name__ == '__main__':

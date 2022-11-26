@@ -11,18 +11,18 @@ import glob
 class Serial:
     BOUDRATE: int = 115200
     COMPORT: str = "COM15"
-    _openSerial: object = NULL
-    _data: dict = NULL
-    _error: int = 0
 
     # RTS:Request to Send.送信要求。DSRと対になる信号でこちらの装置が正常に動作していること、すなわち電源が入っていることを相手に知らせるためのものです。正常に動作しているときには論理を"1"にします。
     # DTR:Data Terminal Ready。送信要求信号を意味します。相手からこちらにデータを送る要求を行います。論理を"0"にすると相手はデータを送ることを中断します
 
     def __init__(self):
-        self._data: dict = {}
+        self._error: int = 0
+        self._data: dict = NULL
         self._openSerial = NULL
+
+    def ConfirmateComPort(self):
         ports = list(list_ports.comports())
-        print("-------[COMPORT_CONFIGURATION]-------")
+        print("[COMPORT_CONFIGURATION]")
         for p in ports:
             try:
                 openserial = serial.Serial(p.device)
@@ -33,15 +33,26 @@ class Serial:
                         p.device, self.BOUDRATE, timeout=None)
                     print("(", p.device, "is ready for arduino", ")")
             except (OSError, serial.SerialException):
-                print(p.device, "can't use.")
-        print("-------------------------------------")
+                print(p.device, "can'kt use.")
         if self._openSerial == NULL:
             print("[exit](Arduino is not found)")
-            sys.exit()
+
+    def WriteSerialData(self, inputPressure=NULL, inputDeltaTime=NULL):
+
+        if self._openSerial == NULL:
+            print("[Port is not opened]")
+            return NULL
+
+        sendData = {'P': inputPressure, 'D': inputDeltaTime}
+        self._openSerial.writelines(sendData)
+
+        while self._openSerial.out_waiting > 0:
+            continue
 
     def PrintSerialData(self):
         if self._openSerial == NULL:
-            return False
+            print("[Port is not opened]")
+            return NULL
 
         while True:
             self.ReadSerialData()
@@ -52,7 +63,9 @@ class Serial:
 
     def GetSerialData(self):
         if self._openSerial == NULL:
-            return False
+            print("[Port is not opened]")
+            return NULL
+
         while True:
             self.ReadSerialData()
             if self._data != NULL:
@@ -60,8 +73,7 @@ class Serial:
                 self._data.pop('Err')
                 return self._data
             else:
-                # データが渡されるまではcontinueで処理を続行
-                continue
+                return NULL
 
     # マイコンからのシリアル通信のデータがあれば、それを読み取る.
     def ReadSerialData(self):
@@ -75,8 +87,8 @@ class Serial:
     def WinSerialPortsDescripition(self):
         comports = list_ports.comports()
         if not comports:
-            print("ポートが見つかりません")
-            return
+            print("ポートが見つからない！残念！")
+            return NULL
         ports = list(comports)
         for p in ports:
             print(p)

@@ -26,6 +26,9 @@ class Analyze:
         self._writer.writerow(
             [time.time() - self._startTime, data['d'], 0, data['F']])
 
+    def editCSV(self):
+        pass
+
     def decode(self):
         pass
 
