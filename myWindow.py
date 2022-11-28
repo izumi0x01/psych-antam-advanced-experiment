@@ -21,7 +21,7 @@ class Window(tk.Frame):
     STOP_BUTTON_BG_COLOR: str = "lemonchiffon"
 
     @property
-    def InputPressure(self):
+    def InputPressure(self) -> int:
         return self.__pressure
 
     @InputPressure.setter
@@ -39,7 +39,7 @@ class Window(tk.Frame):
             self.__pressure = value
 
     @property
-    def InputDeltaTime(self):
+    def InputDeltaTime(self) -> int:
         return self.__deltatime
 
     @InputDeltaTime.setter
@@ -56,6 +56,14 @@ class Window(tk.Frame):
         else:
             self.__deltatime = value
 
+    @property
+    def IsMeasuring(self) -> bool:
+        return self.__isMeasuring
+
+    @IsMeasuring.setter
+    def IsMeasuring(self, value: bool = False):
+        self.__isMeasuring = value
+
     def __init__(self, root, mySerial, myCSV):
         super().__init__(root)
 
@@ -64,6 +72,7 @@ class Window(tk.Frame):
         self.__mySerial = mySerial
         self.__pressure: int = 0
         self.__deltatime: int = 0
+        self.__isMeasuring: bool = False
 
         root.option_add('*font', 'ＭＳゴシック 22')
         root.title("装置との通信用窓")
@@ -188,7 +197,8 @@ class Window(tk.Frame):
         if self.startButton["state"] == "disabled":
             return NULL
 
-        print("[I'm measuring now...]")
+        print("[I'm measuring now...]\n")
+        self.IsMeasuring = True
         filename = self.__myCSV.MakeFile(
             self.InputPressure, self.InputDeltaTime)
         self.measuringStateLabel["text"] = filename
@@ -204,7 +214,8 @@ class Window(tk.Frame):
         if self.stopButton["state"] == "disabled":
             return NULL
 
-        print("[Stop measuring]")
+        print("[Stop measuring]\n")
+        self.IsMeasuring = False
         self.sendDataButton["state"] = "normal"
         self.sendDataButton["bg"] = self.SENDDATA_BUTTON_BG_COLOR
 

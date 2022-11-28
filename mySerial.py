@@ -1,4 +1,5 @@
 from asyncio.windows_events import NULL
+from multiprocessing.sharedctypes import Value
 # from urllib.request import HTTPPasswordMgrWithDefaultRealm
 import serial
 from serial.tools import list_ports
@@ -15,10 +16,18 @@ class Serial:
     # RTS:Request to Send.送信要求。DSRと対になる信号でこちらの装置が正常に動作していること、すなわち電源が入っていることを相手に知らせるためのものです。正常に動作しているときには論理を"1"にします。
     # DTR:Data Terminal Ready。送信要求信号を意味します。相手からこちらにデータを送る要求を行います。論理を"0"にすると相手はデータを送ることを中断します
 
+    @property
+    def ArduinoPort(self):
+        return self.__openSerial
+
+    @ArduinoPort.setter
+    def ArduinoPort(self, value):
+        self.__openSerial = value
+
     def __init__(self):
         self._error: int = 0
         self._data: dict = NULL
-        self._openSerial = NULL
+        self.__openSerial = NULL
 
     def ConfirmateComPort(self):
         ports = list(list_ports.comports())
@@ -29,28 +38,28 @@ class Serial:
                 print(p.device, "can use.")
                 openserial.close()
                 if p.manufacturer == "Arduino LLC (www.arduino.cc)":
-                    self._openSerial = serial.Serial(
+                    self.__openSerial = serial.Serial(
                         p.device, self.BOUDRATE, timeout=None)
                     print("(", p.device, "is ready for arduino", ")")
             except (OSError, serial.SerialException):
-                print(p.device, "can'kt use.")
-        if self._openSerial == NULL:
-            print("[exit](Arduino is not found)")
+                print(p.device, "can't use.")
+        if self.__openSerial == NULL:
+            print("[Arduino is not found]\n")
 
     def SendSerialData(self, inputPressure=NULL, inputDeltaTime=NULL):
 
-        if self._openSerial == NULL:
+        if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
 
         sendData = {'P': inputPressure, 'D': inputDeltaTime}
-        self._openSerial.writelines(sendData)
+        self.__openSerial.writelines(sendData)
 
-        while self._openSerial.out_waiting > 0:
+        while self.__openSerial.out_waiting > 0:
             continue
 
     def PrintSerialData(self):
-        if self._openSerial == NULL:
+        if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
 
@@ -62,7 +71,7 @@ class Serial:
                 continue
 
     def GetSerialData(self):
-        if self._openSerial == NULL:
+        if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
 
@@ -77,8 +86,8 @@ class Serial:
 
     # マイコンからのシリアル通信のデータがあれば、それを読み取る.
     def ReadSerialData(self):
-        if self._openSerial.in_waiting > 0:
-            rawData = self._openSerial.readline()
+        if self.__openSerial.in_waiting > 0:
+            rawData = self.__openSerial.readline()
             decodedData = rawData.decode()
             self._data = json.loads(decodedData)
         else:
@@ -135,7 +144,7 @@ class Serial:
 
     def __del__(self):
         try:
-            self._openSerial.close()
+            self.__openSerial.close()
         except AttributeError:
             pass
 

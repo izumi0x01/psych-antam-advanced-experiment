@@ -21,15 +21,18 @@ try:
         _myWindow.update_idletasks()
         _myWindow.update()
 
-        # mySerial.SendSerialData()
+        if _mySerial.ArduinoPort == NULL:
+            continue
 
-        # data: dict = mySerial.GetSerialData()
+        data: dict = _mySerial.GetSerialData()
 
-        # if data != NULL & _myCSV.IsFileOpened():
-        #     myCSV.AddRow(data)
+        if _myWindow.IsMeasuring == False:
+            continue
 
-    # Ctrl-Cでプログラムの終了
+        if (data != NULL) and (_myCSV.IsFileOpened()):
+            _myCSV.AddRow(data)
 
+# Ctrl-Cでプログラムの終了
 except KeyboardInterrupt:
     del _myCSV
     print("[exit](Ctrl-C interrupted)")
