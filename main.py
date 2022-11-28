@@ -9,29 +9,29 @@ import tkinter as tk
 
 try:
     # initialize
-    mySerial = mySerial.Serial()
-    mySerial.ConfirmateComPort()
-    # myAnalyze = myAnalyze.Analyze()
-    root = tk.Tk()
-    myapp = myInputWindow.InputWindow(root, mySerial)
+    _mySerial = mySerial.Serial()
+    _mySerial.ConfirmateComPort()
+    _myAnalyze = myAnalyze.Analyze()
     # myVision = myVision.Vision()
-
-    print("[I'm measuring now...]")
+    root = tk.Tk()
+    _myInputWindow = myInputWindow.InputWindow(root, _mySerial, _myAnalyze)
 
     while True:
 
-        myapp.update_idletasks()
-        myapp.update()
+        _myInputWindow.update_idletasks()
+        _myInputWindow.update()
 
-        # mySerial.WriteSerialData()
+        # mySerial.SendSerialData()
 
         # data: dict = mySerial.GetSerialData()
-        # if data != NULL:
-        #     myAnalyze.writeRowToCSV(data)
+
+        # if data != NULL & _myAnalyze.IsFileOpened():
+        #     myAnalyze.AddRow(data)
 
     # Ctrl-Cでプログラムの終了
 
 except KeyboardInterrupt:
+    del _myAnalyze
     print("[exit](Ctrl-C interrupted)")
     sys.exit()
 

@@ -37,7 +37,7 @@ class Serial:
         if self._openSerial == NULL:
             print("[exit](Arduino is not found)")
 
-    def WriteSerialData(self, inputPressure=NULL, inputDeltaTime=NULL):
+    def SendSerialData(self, inputPressure=NULL, inputDeltaTime=NULL):
 
         if self._openSerial == NULL:
             print("[Port is not opened]")
