@@ -29,9 +29,9 @@ try:
         if _myWindow.IsMeasuring == False:
             continue
 
-        if (data != NULL) and (_myCSV.IsFileOpened()):
-            _mySerial.PrintSerialData()
-
+        if (data != None) and (data != NULL) and (_myCSV.IsFileOpened()):
+            # _mySerial.PrintSerialData()
+            print(data)
             _myCSV.AddRow(data)
 
 # Ctrl-Cでプログラムの終了

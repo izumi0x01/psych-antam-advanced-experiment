@@ -199,7 +199,7 @@ class Window(tk.Frame):
         if self.startButton["state"] == "disabled":
             return NULL
 
-        print("[I'm measuring now...]\n")
+        print("[I'm measuring now...]")
         self.IsMeasuring = True
         filename = self.__myCSV.MakeFile(
             self.InputPressure, self.InputDeltaTime)
@@ -216,7 +216,7 @@ class Window(tk.Frame):
         if self.stopButton["state"] == "disabled":
             return NULL
 
-        print("[Stop measuring]\n")
+        print("[Stop measuring]")
         self.IsMeasuring = False
         self.sendDataButton["state"] = "normal"
         self.sendDataButton["bg"] = self.SENDDATA_BUTTON_BG_COLOR

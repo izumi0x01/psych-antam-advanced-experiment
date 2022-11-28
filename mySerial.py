@@ -31,7 +31,7 @@ class Serial:
 
     def ConfirmateComPort(self):
         ports = list(list_ports.comports())
-        print("[COMPORT_CONFIGURATION]")
+        print("\n[COMPORT_CONFIGURATION]")
         for p in ports:
             try:
                 openserial = serial.Serial(p.device)
@@ -44,7 +44,8 @@ class Serial:
             except (OSError, serial.SerialException):
                 print(p.device, "can't use.")
         if self.__openSerial == NULL:
-            print("[Arduino is not found]\n")
+            print("[Arduino is not found]")
+        print("\n")
 
     def SendSerialData(self, inputPressure: int = 0, inputDeltaTime: int = 0):
 
@@ -58,7 +59,7 @@ class Serial:
 
         sendData = {'P': inputPressure, 'D': inputDeltaTime}
         self.__openSerial.writelines(str(sendData).encode())
-        print("[Success to send Deltatime, Pressure]")
+        print("[Success to send Deltatime, Pressure]\n")
 
         while self.__openSerial.out_waiting > 0:
             continue
@@ -68,26 +69,22 @@ class Serial:
             print("[Port is not opened]")
             return NULL
 
-        while True:
-            self.ReadSerialData()
-            if self._data != NULL:
-                print("PC時間:", datetime.datetime.now(), ",生データ:", self._data)
-            else:
-                continue
+        self.ReadSerialData()
+        if self._data != NULL:
+            print("PC時間:", datetime.datetime.now(), ",生データ:", self._data)
 
     def GetSerialData(self):
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
 
-        while True:
-            self.ReadSerialData()
-            if self._data != NULL:
-                self._error = self._data['Err']
-                self._data.pop('Err')
-                return self._data
-            else:
-                return NULL
+        self.ReadSerialData()
+        if self._data != NULL:
+            self._error = self._data['Err']
+            self._data.pop('Err')
+            return self._data
+        elif self._data == None:
+            return NULL
 
     # マイコンからのシリアル通信のデータがあれば、それを読み取る.
     def ReadSerialData(self):
