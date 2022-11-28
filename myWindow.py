@@ -6,7 +6,7 @@ import tkinter.ttk as ttk
 import time
 
 
-class InputWindow(tk.Frame):
+class Window(tk.Frame):
 
     FRAME_PADX: int = 30
     FRAME_PADY: int = 15
@@ -56,10 +56,10 @@ class InputWindow(tk.Frame):
         else:
             self.__deltatime = value
 
-    def __init__(self, root, mySerial, myAnalyze):
+    def __init__(self, root, mySerial, myCSV):
         super().__init__(root)
 
-        self.__myAnalyze = myAnalyze
+        self.__myCSV = myCSV
         self.__root = root
         self.__mySerial = mySerial
         self.__pressure: int = 0
@@ -189,7 +189,7 @@ class InputWindow(tk.Frame):
             return NULL
 
         print("[I'm measuring now...]")
-        filename = self.__myAnalyze.MakeFile(
+        filename = self.__myCSV.MakeFile(
             self.InputPressure, self.InputDeltaTime)
         self.measuringStateLabel["text"] = filename
 
@@ -208,8 +208,8 @@ class InputWindow(tk.Frame):
         self.sendDataButton["state"] = "normal"
         self.sendDataButton["bg"] = self.SENDDATA_BUTTON_BG_COLOR
 
-        if self.__myAnalyze.IsFileOpened():
-            self.__myAnalyze.CloseFile()
+        if self.__myCSV.IsFileOpened():
+            self.__myCSV.CloseFile()
 
         self.stopButton["state"] = "disabled"
         self.stopButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
@@ -227,5 +227,5 @@ class InputWindow(tk.Frame):
 
 if __name__ == '__main__':
     root = tk.Tk()
-    myapp = InputWindow(root)
+    myapp = Window(root)
     myapp.mainloop()

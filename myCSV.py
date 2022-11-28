@@ -6,7 +6,7 @@ import json
 import os
 
 
-class Analyze:
+class CSV:
 
     def __init__(self):
         self._f = NULL
@@ -29,7 +29,6 @@ class Analyze:
         return filename
 
     def IsFileOpened(self) -> bool:
-        print(self._f.closed)
         if self._f.closed:
             return False
         else:

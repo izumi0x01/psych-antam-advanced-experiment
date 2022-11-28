@@ -1,9 +1,9 @@
 # クラスのインポート
 from asyncio.windows_events import NULL
-import myAnalyze
+import myCSV
 import myVision
 import mySerial
-import myInputWindow
+import myWindow
 import sys
 import tkinter as tk
 
@@ -11,27 +11,27 @@ try:
     # initialize
     _mySerial = mySerial.Serial()
     _mySerial.ConfirmateComPort()
-    _myAnalyze = myAnalyze.Analyze()
+    _myCSV = myCSV.CSV()
     # myVision = myVision.Vision()
     root = tk.Tk()
-    _myInputWindow = myInputWindow.InputWindow(root, _mySerial, _myAnalyze)
+    _myWindow = myWindow.Window(root, _mySerial, _myCSV)
 
     while True:
 
-        _myInputWindow.update_idletasks()
-        _myInputWindow.update()
+        _myWindow.update_idletasks()
+        _myWindow.update()
 
         # mySerial.SendSerialData()
 
         # data: dict = mySerial.GetSerialData()
 
-        # if data != NULL & _myAnalyze.IsFileOpened():
-        #     myAnalyze.AddRow(data)
+        # if data != NULL & _myCSV.IsFileOpened():
+        #     myCSV.AddRow(data)
 
     # Ctrl-Cでプログラムの終了
 
 except KeyboardInterrupt:
-    del _myAnalyze
+    del _myCSV
     print("[exit](Ctrl-C interrupted)")
     sys.exit()
 
