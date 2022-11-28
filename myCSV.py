@@ -19,7 +19,7 @@ class CSV:
         self._startTime = time.time()
         filename = './output/log_' + \
             datetime.datetime.now().strftime('%Y%m%d_%H%M%S') + \
-            '_dt' + DeltaTime + '_p' + Pressure + '.csv'
+            '_dt' + str(DeltaTime) + '_p' + str(Pressure) + '.csv'
         with open(filename, 'w', encoding="utf-8", newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['DataTime', 'DeltaTime', 'Pressure',

@@ -22,7 +22,7 @@ class Window(tk.Frame):
 
     @property
     def InputPressure(self) -> int:
-        return self.__pressure
+        return int(self.__pressure)
 
     @InputPressure.setter
     def InputPressure(self, value):
@@ -40,7 +40,7 @@ class Window(tk.Frame):
 
     @property
     def InputDeltaTime(self) -> int:
-        return self.__deltatime
+        return int(self.__deltatime)
 
     @InputDeltaTime.setter
     def InputDeltaTime(self, value):
@@ -177,6 +177,7 @@ class Window(tk.Frame):
         self.sendDataStateLabel["text"] = ''
         self.InputPressure = self.pEntry.get()
         self.InputDeltaTime = self.dtEntry.get()
+
         if (int(self.InputPressure) == 0) or (int(self.InputDeltaTime) == 0):
             self.stopButton["state"] = "disabled"
             self.stopButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
@@ -186,7 +187,8 @@ class Window(tk.Frame):
             self.injectAirButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
             return NULL
 
-        self.__mySerial.SendSerialData(self.InputPressure, self.InputDeltaTime)
+        self.__mySerial.SendSerialData(
+            int(self.InputPressure), int(self.InputDeltaTime))
 
         self.startButton["state"] = "normal"
         self.startButton["bg"] = self.START_BUTTON_BG_COLOR

@@ -46,14 +46,19 @@ class Serial:
         if self.__openSerial == NULL:
             print("[Arduino is not found]\n")
 
-    def SendSerialData(self, inputPressure=NULL, inputDeltaTime=NULL):
+    def SendSerialData(self, inputPressure: int = 0, inputDeltaTime: int = 0):
 
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
 
+        if (inputPressure == 0) or (inputDeltaTime == 0):
+            print("[Value is Incorrect]")
+            return NULL
+
         sendData = {'P': inputPressure, 'D': inputDeltaTime}
-        self.__openSerial.writelines(sendData)
+        self.__openSerial.writelines(str(sendData).encode())
+        print("[Success to send Deltatime, Pressure]")
 
         while self.__openSerial.out_waiting > 0:
             continue

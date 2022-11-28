@@ -30,6 +30,8 @@ try:
             continue
 
         if (data != NULL) and (_myCSV.IsFileOpened()):
+            _mySerial.PrintSerialData()
+
             _myCSV.AddRow(data)
 
 # Ctrl-Cでプログラムの終了
