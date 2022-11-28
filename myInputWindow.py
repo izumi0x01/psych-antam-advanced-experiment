@@ -1,6 +1,7 @@
+import pstats
 import sys
 import tkinter as tk
-import mySerial
+import tkinter.ttk as ttk
 import time
 
 
@@ -24,11 +25,11 @@ class InputWindow(tk.Frame):
         if value != '':
             self.__deltatime = value
 
-    def __init__(self, root, _mySerial):
+    def __init__(self, root, mySerial):
         super().__init__(root)
 
         self.__root = root
-        self.__mySerial = _mySerial
+        self.__mySerial = mySerial
         self.__pressure: float = 0.0
         self.__deltatime: int = 0
 
@@ -65,21 +66,62 @@ class InputWindow(tk.Frame):
         # self.dtEntry.bind('<Return>', self.entfunc)
         self.dtEntryBox.grid(column=1, row=1)
 
-        # エラー表示ラベル
-        self.errorLabel = tk.Label(
-            self.tf, text='無効な入力値が入力されました', fg="red")
-        self.errorLabel.grid(column=0, columnspan=2, row=2, sticky='e')
+        # 1,送信ボタン
+        self.sendDataButton = tk.Button(
+            self.tf, text='データ送信', bg='lightpink', bd=2)
+        self.sendDataButton.grid(
+            padx=10, pady=10, column=0, row=2, sticky='ew')
+        self.sendDataButton.bind(
+            "<Button-1>", self.EditSendedDataStateLabelEventHandler)
 
-        # 送信ボタン
-        self.Button = tk.Button(
-            self.tf, text='送信', bg='lightpink', bd=2)
-        self.Button.grid(column=0, columnspan=2, row=3, sticky='e')
-        self.Button.bind("<Button-1>", self.SendButtonEventHandler)
+        # 1,送信状態表示ラベル
+        self.sendDataStateLabel = tk.Label(
+            self.tf, text='無効な入力値が入力されました', fg="red")
+        self.sendDataStateLabel.grid(column=1, columnspan=2, row=2, sticky='w')
+
+        # border1 = ttk.Separator(root, orient="horizontal")
+        # border1.grid(column=0, columnspan=2, row=3, sticky="ew")
+
+        # 2,計測開始ボタン
+        self.startButton = tk.Button(
+            self.tf, text='計測開始', bg='lightgreen', bd=2)
+        self.startButton.grid(padx=10, pady=10, column=0, row=4, sticky='ew')
+        self.startButton.bind("<Button-1>", self.StartButtonEventHandler)
+
+        # 2,計測状態表示ラベル
+        self.sendDataStateLabel = tk.Label(
+            self.tf, text='無効な入力値が入力されました', fg="red")
+        self.sendDataStateLabel.grid(column=1, columnspan=2, row=4, sticky='w')
+
+        # 3,計測終了ボタン
+        self.stopButton = tk.Button(
+            self.tf, text='計測終了', bg='lightblue', bd=2)
+        self.stopButton.grid(padx=10, pady=10, column=0, row=5, sticky='ew')
+        self.stopButton.bind("<Button-1>", self.StopButtonEventHandler)
+
+        # 4,空気発射ボタン
+        self.injectAirButton = tk.Button(
+            self.tf, text='空気発射', bg='lightblue', bd=2)
+        self.injectAirButton.grid(
+            padx=10, pady=10, column=0, row=6, sticky='ew')
+        self.injectAirButton.bind("<Button-1>", self.InjectAirEventHandler)
 
     def SendButtonEventHandler(self, event):
         self.InputPressure = self.pEntry.get()
         self.InputDeltaTime = self.dtEntry.get()
         self.__mySerial.WriteSerialData(self.__pressure, self.__deltatime)
+
+    def StartButtonEventHandler(self, event):
+        pass
+
+    def StopButtonEventHandler(self, event):
+        pass
+
+    def InjectAirEventHandler(self, event):
+        pass
+
+    def EditSendedDataStateLabelEventHandler(self, event):
+        pass
 
     def __del__(self):
         self.__root.destroy()
