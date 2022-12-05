@@ -1,10 +1,13 @@
 from ast import While
-from turtle import update
+from asyncio.windows_events import NULL
+from turtle import distance, update
 from cv2 import contourArea
 import unicurses
 import numpy as np
 import cv2
 import sys
+import math
+import copy
 
 
 class Vision:
@@ -16,7 +19,7 @@ class Vision:
     MASKED_WINDOW_NAME = "Masked"
 
     def __init__(self):
-        self.__threshold: int = 60
+        self.__threshold: int = 145
         self.distance = 0
 
     def MakeWindow(self):
@@ -51,41 +54,106 @@ class Vision:
         - cv2.getTrackbarPos("height", self.MASKED_WINDOW_NAME)
 
     def UpdateWindow(self):
-        ret, Frame = self.__cam.read()
-        cv2.imshow(self.MAIN_WINDOW_NAME, Frame)
         # 描画の待ち時間設定
         k = cv2.waitKey(1) & 0xFF
         if k == ord('q'):
             sys.exe()
+        ret, Frame = self.__cam.read()
+        if not ret:
+            return NULL
+        cv2.imshow(self.MAIN_WINDOW_NAME, Frame)
         # frame全体から画像の抽出
         # Frame = Frame1[self.Y0:self.Y1, self.X0:self.X1]
-        grayFrame = cv2.cvtColor(Frame, cv2.COLOR_BGR2GRAY)
         ret, grayImage = cv2.threshold(
-            grayFrame, self.__threshold, 255, cv2.THRESH_BINARY_INV)
-        grayImage = self.GetRailCountour(grayImage)
+            cv2.cvtColor(Frame, cv2.COLOR_BGR2GRAY), self.__threshold, 255, cv2.THRESH_BINARY_INV)
+        grayImage, railPointList = self.GetRailCountour(grayImage)
+        if railPointList != NULL:
+            grayImage, railPointList = self.SortRailPointList(
+                grayImage, railPointList)
         cv2.imshow(self.MASKED_WINDOW_NAME, grayImage)
 
     def GetRailCountour(self, grayImage):
         contours, hierarchy = cv2.findContours(
             grayImage, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) == 0:
-            return grayImage
+            return grayImage, NULL
 
         rect = cv2.minAreaRect(contours[0])
         box = cv2.boxPoints(rect)
         box = np.int0(box)
         grayImage = cv2.cvtColor(grayImage, cv2.COLOR_GRAY2BGR)
         grayImage = cv2.drawContours(grayImage, [box], 0, (0, 0, 255), 2)
-        return grayImage
+
+        railPointList = []
+        for elm in box:
+            railPointList.append(((elm.tolist())[0], (elm.tolist())[1]))
+
+        return grayImage, railPointList
+
+    def SortRailPointList(self, grayImage, railPointList):
+
+        p0x, p0y = railPointList[0]
+        p1x, p1y = railPointList[1]
+        p2x, p2y = railPointList[2]
+        p3x, p3y = railPointList[3]
+
+        distFromOriginList = [0] * 4
+        distFromOriginList[0] = (
+            math.sqrt(abs(p0x)**2 + abs(p0y)**2), p0x, p0y)
+        distFromOriginList[1] = (
+            math.sqrt(abs(p1x)**2 + abs(p1y)**2), p1x, p1y)
+        distFromOriginList[2] = (
+            math.sqrt(abs(p2x)**2 + abs(p2y)**2), p2x, p2y)
+        distFromOriginList[3] = (
+            math.sqrt(abs(p3x)**2 + abs(p3y)**2), p3x, p3y)
+        distFromOriginList = sorted(distFromOriginList)
+
+        var, x, y = distFromOriginList[0]
+        newlyRailPointList = [0] * 4
+        newlyRailPointList[0] = (x, y)
+
+        distFromBaseList = [0] * 4
+        distFromBaseList[0] = (
+            math.sqrt(abs(x - p0x)**2 + abs(y - p0y)**2), p0x, p0y)
+        distFromBaseList[1] = (
+            math.sqrt(abs(x - p1x)**2 + abs(y - p1y)**2), p1x, p1y)
+        distFromBaseList[2] = (
+            math.sqrt(abs(x - p2x)**2 + abs(y - p2y)**2), p2x, p2y)
+        distFromBaseList[3] = (
+            math.sqrt(abs(x - p3x)**2 + abs(y - p3y)**2), p3x, p3y)
+        distFromBaseList = sorted(distFromBaseList)
+        distFromBaseList.pop(0)
+
+        newlyRailPointList[1] = (
+            distFromBaseList[0][1], distFromBaseList[0][2])
+        newlyRailPointList[2] = (
+            distFromBaseList[1][1], distFromBaseList[1][2])
+        newlyRailPointList[3] = (
+            distFromBaseList[2][1], distFromBaseList[2][2])
+
+        print(newlyRailPointList)
+
+        grayImage = cv2.circle(
+            grayImage, newlyRailPointList[0], 5, (255, 255, 0), -1)  # aqua
+        grayImage = cv2.circle(
+            grayImage, newlyRailPointList[1], 5, (0, 255, 0), -1)  # lime
+        grayImage = cv2.circle(
+            grayImage, newlyRailPointList[2], 5, (255, 0, 0), -1)  # blue
+        grayImage = cv2.circle(
+            grayImage, newlyRailPointList[3], 5, (0, 255, 255), -1)  # yellow
+
+        return grayImage, newlyRailPointList
 
     def CalcCenterOfGravity(self):
         pass
 
-    def getDistance(self):
-        return self.distance
+    def CalcRailDistance(self, railPointList):
+
+        railDistance = 0
+        return railDistance
 
     # ノズルとダンゴムシとの重心距離を計算して距離を返す。
-    def calc_distance(self, center_of_nozzle, center_of_gravity):
+    def CalcDistance(self, center_of_nozzle, center_of_gravity):
         _distance = 0
         self.distance = _distance
 
