@@ -58,19 +58,24 @@ class Vision:
         k = cv2.waitKey(1) & 0xFF
         if k == ord('q'):
             sys.exe()
-        ret, Frame = self.__cam.read()
+        ret, frame = self.__cam.read()
         if not ret:
             return NULL
-        cv2.imshow(self.MAIN_WINDOW_NAME, Frame)
+        cv2.imshow(self.MAIN_WINDOW_NAME, frame)
         # frame全体から画像の抽出
         # Frame = Frame1[self.Y0:self.Y1, self.X0:self.X1]
-        ret, grayImage = cv2.threshold(
-            cv2.cvtColor(Frame, cv2.COLOR_BGR2GRAY), self.__threshold, 255, cv2.THRESH_BINARY_INV)
+        grayImage = self.ToBinaryImage(frame)
         grayImage, railPointList = self.GetRailCountour(grayImage)
         if railPointList != NULL:
             grayImage, railPointList = self.SortRailPointList(
                 grayImage, railPointList)
+            self.CalcRailDistance(grayImage, railPointList)
         cv2.imshow(self.MASKED_WINDOW_NAME, grayImage)
+
+    def ToBinaryImage(self, frame):
+        ret, grayImage = cv2.threshold(
+            cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), self.__threshold, 255, cv2.THRESH_BINARY_INV)
+        return grayImage
 
     def GetRailCountour(self, grayImage):
         contours, hierarchy = cv2.findContours(
@@ -131,7 +136,7 @@ class Vision:
         newlyRailPointList[3] = (
             distFromBaseList[2][1], distFromBaseList[2][2])
 
-        print(newlyRailPointList)
+        # print(newlyRailPointList)
 
         grayImage = cv2.circle(
             grayImage, newlyRailPointList[0], 5, (255, 255, 0), -1)  # aqua
