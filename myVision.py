@@ -60,36 +60,23 @@ class Vision:
         # frame全体から画像の抽出
         # Frame = Frame1[self.Y0:self.Y1, self.X0:self.X1]
         grayFrame = cv2.cvtColor(Frame, cv2.COLOR_BGR2GRAY)
-        ret, mask_image = cv2.threshold(
+        ret, grayImage = cv2.threshold(
             grayFrame, self.__threshold, 255, cv2.THRESH_BINARY_INV)
-        mask_image = self.GetRailCountour(mask_image)
-        # cv2.imshow(self.MASKED_WINDOW_NAME, mask_image)
+        grayImage = self.GetRailCountour(grayImage)
+        cv2.imshow(self.MASKED_WINDOW_NAME, grayImage)
 
-    def GetRailCountour(self, mask_image):
-        # contours, hierarchy = cv2.findContours(
-        #     grayFrame, cv2.RETR_TREE, cv2.CHAIN_APPROX_TC89_L1)
-        # for i, cnt in enumerate(contours):
-        #     # print(f"contours[{i}].shape: {cnt.shape}")
-        #     rect = cv2.minAreaRect(contours[i])
-        #     box = cv2.boxPoints(rect)
-        #     box = np.int0(box)
-        #     grayFrame = cv2.drawContours(grayFrame, [box], 0, (0, 0, 255), 2)
-        # return
+    def GetRailCountour(self, grayImage):
         contours, hierarchy = cv2.findContours(
-            mask_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            grayImage, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) == 0:
-            return mask_image
+            return grayImage
 
         rect = cv2.minAreaRect(contours[0])
         box = cv2.boxPoints(rect)
         box = np.int0(box)
-        print(box)
-        mask_image = cv2.cvtColor(mask_image, cv2.COLOR_GRAY2BGR)
-        mask_image = cv2.drawContours(mask_image, [box], 0, (0, 0, 255), 10)
-        # cv2.rectangle(mask_image, (384, 0), (510, 128), (0, 255, 255), 3)
-
-        cv2.imshow(self.MASKED_WINDOW_NAME, mask_image)
-        return mask_image
+        grayImage = cv2.cvtColor(grayImage, cv2.COLOR_GRAY2BGR)
+        grayImage = cv2.drawContours(grayImage, [box], 0, (0, 0, 255), 2)
+        return grayImage
 
     def CalcCenterOfGravity(self):
         pass
