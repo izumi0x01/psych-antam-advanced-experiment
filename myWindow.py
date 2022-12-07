@@ -187,7 +187,7 @@ class Window(tk.Frame):
             self.injectAirButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
             return NULL
 
-        self.__mySerial.SendSerialData(
+        self.__mySerial.SendInitializeData(
             int(self.InputPressure), int(self.InputDeltaTime))
 
         self.startButton["state"] = "normal"

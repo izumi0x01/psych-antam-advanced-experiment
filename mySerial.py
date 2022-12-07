@@ -47,7 +47,7 @@ class Serial:
             print("[Arduino is not found]")
         print("\n")
 
-    def SendSerialData(self, inputPressure: int = 0, inputDeltaTime: int = 0):
+    def SendInitializeData(self, inputPressure: int = 0, inputDeltaTime: int = 0):
 
         if self.__openSerial == NULL:
             print("[Port is not opened]")
@@ -63,6 +63,30 @@ class Serial:
 
         while self.__openSerial.out_waiting > 0:
             continue
+
+    def SendStartMeasuringSignal(self):
+        if self.__openSerial == NULL:
+            print("[Port is not opened]")
+            return NULL
+        self.__openSerial.writelines('1'.encode())
+
+    def SendInjectAirSignalFromVision(self):
+        if self.__openSerial == NULL:
+            print("[Port is not opened]")
+            return NULL
+        self.__openSerial.writelines('2'.encode())
+
+    def SendStopMeasuringSignal(self):
+        if self.__openSerial == NULL:
+            print("[Port is not opened]")
+            return NULL
+        self.__openSerial.writelines('3'.encode())
+
+    def SendInjectAirSignalFromWindow(self):
+        if self.__openSerial == NULL:
+            print("[Port is not opened]")
+            return NULL
+        self.__openSerial.writelines('9'.encode())
 
     def PrintSerialData(self):
         if self.__openSerial == NULL:
