@@ -12,7 +12,7 @@
 
 // 3,流量計の制御
 // 入力:A1
-// float GetFlowRate()
+// float GetLowFlowRate()
 
 // 4,arduino2PC,Timer2.hを使用
 // 出力データ:JSON形式{arduinoの開始からの経過時間,噴射時間（噴射してないなら-1）,圧力、流量}
@@ -22,19 +22,23 @@
 #include <MsTimer2.h>
 #include <limits.h>
 
-#define readFlowRatePin 55  //A1
-#define readPressurePin 54  //A0
-#define setPressurePin 8
+#define readPressurePin 54  //A0,D54
+#define setPressurePin 8 
+#define readLowFlowRatePin 55  //A1,D55
+#define readHighFlowRatePin 56  //A2,D56
+#define setInjectAirPin 22 //D22
 
 //メモリサイズが適切でないとJSONを正確に送れないぽい
 DynamicJsonDocument readData(32);
 DynamicJsonDocument sendData(128);
 DeserializationError err;
 
+bool isAirInjectSignalRecievable = false;
 long measuringTime = -1;
 //trigerredTime[s] -> trigerredTime + long measuringTime[s]までの間を推移
 long elapsedDt = -1;  
 long trigerredTime = -1;
+long setMeasuringTime = 0;
 float setPressure = 0;
 
 void setup() {
@@ -45,12 +49,15 @@ void setup() {
   Serial.setTimeout(10);
 
   //タイマ割り込みの設定
-  MsTimer2::set(20, InterruptSerial);
+  MsTimer2::set(10, InterruptSerial);
   MsTimer2::start();
 
   //ピンモードの設定
   pinMode(A0, INPUT);
   pinMode(A1, INPUT);
+  pinMode(A2, INPUT);
+  pinMode(22, OUTPUT);
+  pinMode(8, OUTPUT);
 
 }
 
@@ -62,22 +69,64 @@ void loop() {
   // Serial.print("Serial.peek() : ");
   // Serial.println(Serial.peek());
 
-  if (elapsedDt == -1) {
-    Rx(&measuringTime, &setPressure);
-  }
-
-  if (now() <= trigerredTime + measuringTime) {
-    elapsedDt = now() - trigerredTime;
+  if(isAirInjectSignalRecievable == false)
+  {
+    RxInitialSetting(&setMeasuringTime, &setPressure);
     SetPressure(setPressure);
-  } else if (now() > trigerredTime + measuringTime) {
-    elapsedDt = -1;
-    trigerredTime = -1;
-    SetPressure(0);
+    isAirInjectSignalRecievable = true;
+    delay(295);
+  }
+  else if(isAirInjectSignalRecievable == true)
+  {
+    //状態が-1がデフォで何もしない,1なら計測開始の信号受信,2なら画像処理の信号として空気発射,3なら計測終了の信号受信,9ならユーザの入力として空気を発射
+    if(RxMeasuringSignal() == -1)
+    {
+
+    }
+    else if(RxMeasuringSignal() == 1)
+    {
+      
+    }
+    else if(RxMeasuringSignal() == 2)
+    {
+      if (elapsedDt == -1)
+      {
+        trigerredTime = now();
+        InjectAir(1);
+      }
+    }
+    else if(RxMeasuringSignal() == 3)
+    {
+      //設定の初期化
+      isAirInjectSignalRecievable = false;
+      trigerredTime = -1;
+      elapsedDt = -1;
+      measuringTime = -1;
+      InjectAir(0);
+    }
+    else if(RxMeasuringSignal() == 9)
+    {
+      if (elapsedDt == -1)
+      {
+        measuringTime = 100
+        trigerredTime = now();
+        InjectAir(1);
+      }
+    }
+
+    if (now() <= trigerredTime + measuringTime)
+      elapsedDt = now() - trigerredTime;
+    else if (now() > trigerredTime + measuringTime) {
+      elapsedDt = -1;
+      InjectAir(0);
+    }
+
+    delay(5);
   }
 
-  Tx(GetPressure(), GetFlowRate());
+  Tx(GetPressure(), GetLowFlowRate(),GetHighFlowRate());
+  delay(5);
 
-  delay(20);
 }
 
 long now() {
@@ -94,6 +143,30 @@ void InterruptSerial() {
   Serial.println("");
 }
 
+
+int RxMeasuringSignal(){
+
+  if (Serial.available() == 0)
+    return -1;
+
+  if (Serial.available() >= 2)
+    return -1;
+
+  char rcv = Serial.read();
+
+  if(rcv == '0')
+    return -1;
+  else if(rcv == '1')
+    return 0;
+  else if(rcv == '2')
+    return 1;
+  else if(rcv == '3')
+    return 2;
+  else if(rcv == '9')
+    return 9;
+
+}
+
 // exp) JSONを送る例
 //  {"d":500,  "p":200}
 // {"d":100,  "p":400}
@@ -103,7 +176,9 @@ void InterruptSerial() {
 //      {"d":500,  "p":500}
 //      {"d":500,  "p":200}
 //     ,{"d":1000,  "p":200,  "_":200}
-void Rx(long *pt_measuringTime, float *pt_setPressure) {
+
+
+void RxInitialSetting(long *pt_setMeasuringTime, float *pt_setPressure) {
 
 
   if (Serial.available() == 0)
@@ -185,8 +260,8 @@ confirm_pos:
     // *pt_setPressure *= 0.01;
     // readData.remove("sP");
 
-    *pt_measuringTime = readData["d"];
-    // *pt_measuringTime *= 100;
+    *pt_setMeasuringTime = readData["d"];
+    // *pt_setMeasuringTime *= 100;
 
     readData.clear();
   }
@@ -196,18 +271,19 @@ confirm_pos:
     return;
 
   //データがセットされたタイミングでtrigerが起動.
-  trigerredTime = now();
   sendData["Err"] = 0;
 }
 
-void Tx(float _readPressure, float _readFlowRate) {
+void Tx(float _readPressure, float _readLowFlowRate, float _readHighFlowRate) {
   // 送信するシリアルデータを整える.送信は割り込み中に行う。
-  // sendData["t"] = millis();
+  sendData["t"] = millis();
   // //if (elapsedDt < 0)
   // //elapsedDt = -1;
    sendData["d"] = elapsedDt;
   // sendData["P"] = _readPressure;
-  sendData["F"] = _readFlowRate;
+  sendData["LF"] = _readLowFlowRate;
+
+  sendData["HF"] = _readHighFlowRate;
 
   //parametercheck
   // Serial.print("setPressure: ");
@@ -227,6 +303,22 @@ void SetPressure(float _val) {
   analogWrite(setPressurePin, _val);
 }
 
-float GetFlowRate() {
-  return analogRead(readFlowRatePin);
+float GetLowFlowRate() {
+  return analogRead(readLowFlowRatePin);
+}
+
+float GetHighFlowRate() {
+  return analogRead(readHighFlowRatePin);
+}
+
+void InjectAir(int Signal)
+{
+  if(Signal == 1)
+  {
+    digitalWrite(setInjectAirPin,HIGH);
+  }
+  if(Signal == 0)
+  {
+    digitalWrite(setInjectAirPin,HIGH);
+  }
 }
