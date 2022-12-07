@@ -93,7 +93,7 @@ class Window(tk.Frame):
         self.sendDataButton.grid(
             padx=10, pady=10, column=0, row=0, sticky='w')
         self.sendDataButton.bind(
-            "<Button-1>", self.DataSendButtonEventHandler)
+            "<Button-1>", self.SendDataButtonEventHandler)
 
         # 1,送信状態表示ラベル
         self.sendDataStateLabel = tk.Label(
@@ -170,7 +170,7 @@ class Window(tk.Frame):
         self.injectAirButton.bind("<Button-1>", self.InjectAirEventHandler)
         self.injectAirButton["state"] = "disable"
 
-    def DataSendButtonEventHandler(self, event):
+    def SendDataButtonEventHandler(self, event):
         if self.sendDataButton["state"] == "disabled":
             return NULL
 
@@ -204,6 +204,7 @@ class Window(tk.Frame):
         filename = self.__myCSV.MakeFile(
             self.InputPressure, self.InputDeltaTime)
         self.measuringStateLabel["text"] = filename
+        self.__mySerial.SendStartMeasuringSignal()
 
         self.sendDataButton["state"] = "disabled"
         self.sendDataButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
@@ -220,6 +221,7 @@ class Window(tk.Frame):
         self.IsMeasuring = False
         self.sendDataButton["state"] = "normal"
         self.sendDataButton["bg"] = self.SENDDATA_BUTTON_BG_COLOR
+        self.__mySerial.SendStopMeasuringSignal()
 
         if self.__myCSV.IsFileOpened():
             self.__myCSV.CloseFile()
@@ -232,6 +234,7 @@ class Window(tk.Frame):
             return NULL
         elif self.injectAirButton["state"] == "normal":
             self.injectAirButton["bg"] = self.INJECTEAIR_BUTTON_BG_COLOR
+            self.__mySerial.SendInjectAirSignalFromWindow()
             print("[Inject Air!]")
 
     def __del__(self):
