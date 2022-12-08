@@ -26,7 +26,7 @@
 #define setPressurePin 8 
 #define readLowFlowRatePin 55  //A1,D55
 #define readHighFlowRatePin 56  //A2,D56
-#define setInjectAirPin 22 //D22
+#define setSolenoidValvePin 22 //D22
 
 //メモリサイズが適切でないとJSONを正確に送れないぽい
 DynamicJsonDocument readData(32);
@@ -59,6 +59,8 @@ void setup() {
   pinMode(22, OUTPUT);
   pinMode(8, OUTPUT);
 
+  SolenoidValve(0);
+
 }
 
 void loop() {
@@ -74,6 +76,7 @@ void loop() {
     RxInitialSetting(&setMeasuringTime, &setPressure);
     SetPressure(setPressure);
     isAirInjectSignalRecievable = true;
+    SolenoidValve(0);
     delay(295);
   }
   else if(isAirInjectSignalRecievable == true)
@@ -92,7 +95,7 @@ void loop() {
       if (elapsedDt == -1)
       {
         trigerredTime = now();
-        InjectAir(1);
+        SolenoidValve(1);
       }
     }
     else if(RxMeasuringSignal() == 3)
@@ -102,15 +105,15 @@ void loop() {
       trigerredTime = -1;
       elapsedDt = -1;
       measuringTime = -1;
-      InjectAir(0);
+      SolenoidValve(0);
     }
     else if(RxMeasuringSignal() == 9)
     {
       if (elapsedDt == -1)
       {
-        measuringTime = 100
+        measuringTime = 100;
         trigerredTime = now();
-        InjectAir(1);
+        SolenoidValve(1);
       }
     }
 
@@ -118,7 +121,7 @@ void loop() {
       elapsedDt = now() - trigerredTime;
     else if (now() > trigerredTime + measuringTime) {
       elapsedDt = -1;
-      InjectAir(0);
+      SolenoidValve(0);
     }
 
     delay(5);
@@ -311,14 +314,14 @@ float GetHighFlowRate() {
   return analogRead(readHighFlowRatePin);
 }
 
-void InjectAir(int Signal)
+void SolenoidValve(int Signal)
 {
   if(Signal == 1)
   {
-    digitalWrite(setInjectAirPin,HIGH);
+    digitalWrite(setSolenoidValvePin,HIGH);
   }
   if(Signal == 0)
   {
-    digitalWrite(setInjectAirPin,HIGH);
+    digitalWrite(setSolenoidValvePin,LOW);
   }
 }

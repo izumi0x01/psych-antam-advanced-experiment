@@ -69,7 +69,7 @@ class Vision:
         if railPointList != NULL:
             grayImage, railPointList = self.SortRailPointList(
                 grayImage, railPointList)
-            self.CalcRailDistance(grayImage, railPointList)
+            # self.CalcRailDistance(grayImage, railPointList)
         cv2.imshow(self.MASKED_WINDOW_NAME, grayImage)
 
     def ToBinaryImage(self, frame):
