@@ -73,11 +73,19 @@ void loop() {
 
   if(isAirInjectSignalRecievable == false)
   {
-    RxInitialSetting(&setMeasuringTime, &setPressure);
-    SetPressure(setPressure);
-    isAirInjectSignalRecievable = true;
-    SolenoidValve(0);
-    delay(295);
+    if(RxInitialSetting(&setMeasuringTime, &setPressure) == 1)
+    {
+      SetPressure(setPressure);
+      isAirInjectSignalRecievable = true;
+      SolenoidValve(0);
+      delay(295);
+    }
+    else if(RxInitialSetting(&setMeasuringTime, &setPressure) == -1)
+    {
+      SetPressure(0);
+      SolenoidValve(0);
+      delay(295);
+    }
   }
   else if(isAirInjectSignalRecievable == true)
   {
@@ -181,11 +189,10 @@ int RxMeasuringSignal(){
 //     ,{"d":1000,  "p":200,  "_":200}
 
 
-void RxInitialSetting(long *pt_setMeasuringTime, float *pt_setPressure) {
-
+int RxInitialSetting(long *pt_setMeasuringTime, float *pt_setPressure) {
 
   if (Serial.available() == 0)
-    return;
+    return -1;
 
   // Serial.println("---OutLoop1---");
   // Serial.print("Ser.avl() : ");
@@ -241,7 +248,6 @@ confirm_pos:
     goto confirm_pos;
   }
 
-
     // Serial.println("---OutLoop2---");
     // Serial.print("Serial.available() : ");
     // Serial.print(Serial.available());
@@ -271,10 +277,15 @@ confirm_pos:
 
   //エラーが出てタイムアウトした場合は,JSONOBJECTの要素に0要素が格納される。エラー処理。
   if (_d == long(0) || _p == float(0))
-    return;
+    return -1;
 
   //データがセットされたタイミングでtrigerが起動.
   sendData["Err"] = 0;
+
+  // sendData["_P"] = _p;
+  // sendData["_D"] = _d;
+
+  return 1;
 }
 
 void Tx(float _readPressure, float _readLowFlowRate, float _readHighFlowRate) {
