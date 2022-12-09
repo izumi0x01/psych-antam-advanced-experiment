@@ -25,12 +25,13 @@ try:
             continue
 
         data: dict = _mySerial.GetSerialData()
+        _mySerial.PrintSerialData()
 
         if _myWindow.IsMeasuring == False:
             continue
 
         if (data != None) and (data != NULL) and (_myCSV.IsFileOpened()):
-            # _mySerial.PrintSerialData()
+            _mySerial.PrintSerialData()
             print(data)
             _myCSV.AddRow(data)
 

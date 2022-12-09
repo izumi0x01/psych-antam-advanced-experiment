@@ -49,7 +49,7 @@ void setup() {
   Serial.setTimeout(10);
 
   //タイマ割り込みの設定
-  MsTimer2::set(10, InterruptSerial);
+  MsTimer2::set(1000, InterruptSerial);
   MsTimer2::start();
 
   //ピンモードの設定
@@ -194,6 +194,10 @@ int RxInitialSetting(long *pt_setMeasuringTime, float *pt_setPressure) {
   if (Serial.available() == 0)
     return -1;
 
+  sendData["test"] = 1;
+  serializeJson(sendData, Serial);
+  Serial.println("");
+
   // Serial.println("---OutLoop1---");
   // Serial.print("Ser.avl() : ");
   // Serial.print(Serial.available());
@@ -275,6 +279,10 @@ confirm_pos:
     readData.clear();
   }
 
+  sendData["test"] = 2;
+  serializeJson(sendData, Serial);
+  Serial.println("");
+
   //エラーが出てタイムアウトした場合は,JSONOBJECTの要素に0要素が格納される。エラー処理。
   if (_d == long(0) || _p == float(0))
     return -1;
@@ -284,6 +292,10 @@ confirm_pos:
 
   // sendData["_P"] = _p;
   // sendData["_D"] = _d;
+
+  sendData["test"] = 3;
+  serializeJson(sendData, Serial);
+  Serial.println("");
 
   return 1;
 }
