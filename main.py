@@ -24,14 +24,15 @@ try:
         if _mySerial.ArduinoPort == NULL:
             continue
 
-        data: dict = _mySerial.GetSerialData()
-        _mySerial.PrintSerialData()
+        data: dict = _mySerial.ReadData()
+        data = _mySerial.ReshapeData(data)
+        _mySerial.PrintData(data)
 
         if _myWindow.IsMeasuring == False:
             continue
 
         if (data != None) and (data != NULL) and (_myCSV.IsFileOpened()):
-            _mySerial.PrintSerialData()
+            # _mySerial.PrintData(data)
             print(data)
             _myCSV.AddRow(data)
 

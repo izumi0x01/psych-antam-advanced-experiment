@@ -46,10 +46,10 @@ void setup() {
   //シリアル通信の初期化
   Serial.begin(115200);
   sendData["Err"] = 0;
-  Serial.setTimeout(10);
+  Serial.setTimeout(50);
 
   //タイマ割り込みの設定
-  MsTimer2::set(1000, InterruptSerial);
+  MsTimer2::set(300, InterruptSerial);
   MsTimer2::start();
 
   //ピンモードの設定
@@ -78,13 +78,13 @@ void loop() {
       SetPressure(setPressure);
       isAirInjectSignalRecievable = true;
       SolenoidValve(0);
-      delay(295);
+      delay(15);
     }
     else if(RxInitialSetting(&setMeasuringTime, &setPressure) == -1)
     {
       SetPressure(0);
       SolenoidValve(0);
-      delay(295);
+      delay(15);
     }
   }
   else if(isAirInjectSignalRecievable == true)
@@ -206,7 +206,7 @@ int RxInitialSetting(long *pt_setMeasuringTime, float *pt_setPressure) {
     sendData["Err"] = 0;
   }
 
-  delay(5);
+  delay(295);
   err = deserializeJson(readData, Serial);
   if (err) {
     // Serial.print(F("deserializeJson() failed: "));

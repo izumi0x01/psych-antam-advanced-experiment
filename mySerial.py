@@ -26,7 +26,7 @@ class Serial:
 
     def __init__(self):
         self._error: int = 0
-        self._data: dict = NULL
+        data: dict = NULL
         self.__openSerial = NULL
 
     def ConfirmateComPort(self):
@@ -71,59 +71,53 @@ class Serial:
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
-        self.__openSerial.writelines('1'.encode())
+        self.__openSerial.write(bytes('1', 'utf-8'))
 
     def SendInjectAirSignalFromVision(self):
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
-        self.__openSerial.writelines('2'.encode())
+        self.__openSerial.write(bytes('2', 'utf-8'))
 
     def SendStopMeasuringSignal(self):
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
-        self.__openSerial.writelines('3'.encode())
+        self.__openSerial.write(bytes('3', 'utf-8'))
 
     def SendInjectAirSignalFromWindow(self):
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
-        self.__openSerial.writelines('9'.encode())
-
-    def PrintSerialData(self):
-        if self.__openSerial == NULL:
-            print("[Port is not opened]")
-            return NULL
-
-        self.ReadSerialData()
-        if self._data != NULL:
-            print("PC時間:", datetime.datetime.now(), ",生データ:", self._data)
-
-    def GetSerialData(self):
-        if self.__openSerial == NULL:
-            print("[Port is not opened]")
-            return NULL
-
-        self.ReadSerialData()
-        if self._data != NULL:
-            self._error = self._data['Err']
-            self._data.pop('Err')
-            return self._data
-        elif self._data == None:
-            return NULL
+        self.__openSerial.write(bytes('9', 'utf-8'))
 
     # マイコンからのシリアル通信のデータがあれば、それを読み取る.
-    def ReadSerialData(self):
+    def ReadData(self):
         if self.__openSerial.in_waiting > 0:
+
             rawData = self.__openSerial.readline()
             decodedData = rawData.decode()
+            data: dict = json.loads(decodedData)
+
             try:
-                self._data = json.loads(decodedData)
+                data = json.loads(decodedData)
             except json.JSONDecodeError:
-                self._data: dict = {"RECIEVE_TEXT": str(decodedData)}
+                data: dict = {"RECIEVE_TEXT": str(decodedData)}
         else:
-            self._data = NULL
+            data: dict = NULL
+        return data
+
+    def ReshapeData(self, data):
+        if data != NULL:
+            self._error = data['Err']
+            data.pop('Err')
+            return data
+        elif data == None:
+            return NULL
+
+    def PrintData(self, data):
+        if (data != NULL) and (data != None):
+            print("PC時間:", datetime.datetime.now(), ",生データ:", data)
 
     def WinSerialPortsDescripition(self):
         comports = list_ports.comports()
@@ -187,4 +181,4 @@ if __name__ == "__main__":
     # windowsで、ポートの利用状況を詳しく調べる。
     # s.WinSerialPortsDescripition()
 
-    s.PrintSerialData()
+    s.PrintData()
