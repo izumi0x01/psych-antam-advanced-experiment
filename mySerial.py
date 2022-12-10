@@ -57,8 +57,11 @@ class Serial:
             print("[Value is Incorrect]")
             return NULL
 
-        sendData = {'P': inputPressure, 'D': inputDeltaTime}
-        self.__openSerial.writelines(str(sendData).encode())
+        sendData = {'p': inputPressure, 'd': inputDeltaTime}
+        sendDataString = str(sendData)
+
+        # .writelineだとエラー出るっぽい。->.writeにする。
+        self.__openSerial.write(bytes(sendDataString, 'utf-8'))
         print("[Success to send Deltatime, Pressure]\n")
 
         while self.__openSerial.out_waiting > 0:
@@ -115,7 +118,10 @@ class Serial:
         if self.__openSerial.in_waiting > 0:
             rawData = self.__openSerial.readline()
             decodedData = rawData.decode()
-            self._data = json.loads(decodedData)
+            try:
+                self._data = json.loads(decodedData)
+            except json.JSONDecodeError:
+                self._data: dict = {"RECIEVE_TEXT": str(decodedData)}
         else:
             self._data = NULL
 

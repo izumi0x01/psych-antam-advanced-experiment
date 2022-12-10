@@ -194,10 +194,6 @@ int RxInitialSetting(long *pt_setMeasuringTime, float *pt_setPressure) {
   if (Serial.available() == 0)
     return -1;
 
-  sendData["test"] = 1;
-  serializeJson(sendData, Serial);
-  Serial.println("");
-
   // Serial.println("---OutLoop1---");
   // Serial.print("Ser.avl() : ");
   // Serial.print(Serial.available());
@@ -226,8 +222,6 @@ int RxInitialSetting(long *pt_setMeasuringTime, float *pt_setPressure) {
   } else {
     sendData["Err"] = 0;
   }
-
-
 
 //デシリアライズ後に処理が1000msかかってしまうのは、エラーによりタイムアウトが発生している。
 confirm_pos:
@@ -277,11 +271,7 @@ confirm_pos:
     // *pt_setMeasuringTime *= 100;
 
     readData.clear();
-  }
-
-  sendData["test"] = 2;
-  serializeJson(sendData, Serial);
-  Serial.println("");
+  }    
 
   //エラーが出てタイムアウトした場合は,JSONOBJECTの要素に0要素が格納される。エラー処理。
   if (_d == long(0) || _p == float(0))
@@ -289,13 +279,6 @@ confirm_pos:
 
   //データがセットされたタイミングでtrigerが起動.
   sendData["Err"] = 0;
-
-  // sendData["_P"] = _p;
-  // sendData["_D"] = _d;
-
-  sendData["test"] = 3;
-  serializeJson(sendData, Serial);
-  Serial.println("");
 
   return 1;
 }
