@@ -7,6 +7,7 @@ import json
 import datetime
 import sys
 import glob
+import copy
 
 
 class Serial:
@@ -71,45 +72,52 @@ class Serial:
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
+
+        print("[measuring start signal sended]\n")
         self.__openSerial.write(bytes('1', 'utf-8'))
 
     def SendInjectAirSignalFromVision(self):
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
+
+        print("[Inject Air signal sended]\n")
         self.__openSerial.write(bytes('2', 'utf-8'))
 
     def SendStopMeasuringSignal(self):
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
+
+        print("[measuring stop signal sended]\n")
         self.__openSerial.write(bytes('3', 'utf-8'))
 
     def SendInjectAirSignalFromWindow(self):
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
+
+        print("[Inject Air sended]\n")
         self.__openSerial.write(bytes('9', 'utf-8'))
 
     # マイコンからのシリアル通信のデータがあれば、それを読み取る.
     def ReadData(self):
         if self.__openSerial.in_waiting > 0:
-
             rawData = self.__openSerial.readline()
             decodedData = rawData.decode()
-            data: dict = json.loads(decodedData)
-
+            data = json.loads(decodedData)
             try:
-                data = json.loads(decodedData)
+                data = copy.copy(json.loads(decodedData))
             except json.JSONDecodeError:
                 data: dict = {"RECIEVE_TEXT": str(decodedData)}
         else:
             data: dict = NULL
+
         return data
 
     def ReshapeData(self, data):
         if data != NULL:
-            self._error = data['Err']
+            self._error = int(data['Err'])
             data.pop('Err')
             return data
         elif data == None:

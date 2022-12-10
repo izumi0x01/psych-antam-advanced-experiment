@@ -27,13 +27,16 @@ class Window(tk.Frame):
     @InputPressure.setter
     def InputPressure(self, value):
         if value == '':
-            self.__pressure = 0
+            self.__pressure = -1
             self.sendDataStateLabel["text"] += '[設定圧力に無効な入力]'
-        elif int(value) > 1000:
+        elif int(value) == 9999:
             self.__pressure = 0
+            self.sendDataStateLabel["text"] = '[一時停止]'
+        elif int(value) > 1000:
+            self.__pressure = -1
             self.sendDataStateLabel["text"] += '[設定圧力は1000pa以下]'
         elif int(value) < 0:
-            self.__pressure = 0
+            self.__pressure = -1
             self.sendDataStateLabel["text"] += '[設定圧力は正値]'
         else:
             self.__pressure = value
@@ -45,13 +48,16 @@ class Window(tk.Frame):
     @InputDeltaTime.setter
     def InputDeltaTime(self, value):
         if value == '':
-            self.__deltatime = 0
+            self.__deltatime = -1
             self.sendDataStateLabel["text"] += '[設定時間に無効な入力]'
-        elif int(value) > 1000:
-            self.__deltatime = 0
-            self.sendDataStateLabel["text"] += '[設定時間は1000s以下]'
+        elif int(value) == 9999:
+            self.__pressure = 0
+            self.sendDataStateLabel["text"] = '[一時停止]'
+        elif int(value) > 5000:
+            self.__deltatime = -1
+            self.sendDataStateLabel["text"] += '[設定時間は5000ms以下]'
         elif int(value) < 0:
-            self.__deltatime = 0
+            self.__deltatime = -1
             self.sendDataStateLabel["text"] += '[設定時間は正値]'
         else:
             self.__deltatime = value
@@ -178,7 +184,7 @@ class Window(tk.Frame):
         self.InputPressure = self.pEntry.get()
         self.InputDeltaTime = self.dtEntry.get()
 
-        if (int(self.InputPressure) == 0) or (int(self.InputDeltaTime) == 0):
+        if (int(self.InputPressure) == -1) or (int(self.InputDeltaTime) == -1):
             self.stopButton["state"] = "disabled"
             self.stopButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
             self.startButton["state"] = "disabled"
@@ -186,6 +192,10 @@ class Window(tk.Frame):
             self.injectAirButton["state"] = "disabled"
             self.injectAirButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
             return NULL
+
+        if (int(self.InputPressure) == 0) or (int(self.InputDeltaTime) == 0):
+            self.__mySerial.SendInitializeData(
+                int(9999), int(9999))
 
         self.__mySerial.SendInitializeData(
             int(self.InputPressure), int(self.InputDeltaTime))

@@ -23,7 +23,7 @@ class CSV:
         with open(filename, 'w', encoding="utf-8", newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['DataTime', 'DeltaTime', 'Pressure',
-                            'FlowRate'])
+                            'LowFlowRate', 'HighFlowRate'])
         self._f = open(filename, 'a', encoding="utf-8", newline='')
         self._writer = csv.writer(self._f)
         return filename
@@ -40,7 +40,7 @@ class CSV:
 
     def AddRow(self, data: dict):
         self._writer.writerow(
-            [time.time() - self._startTime, data['d'], 0, data['F']])
+            [time.time() - self._startTime, data['d'], 0, data['LF'], data['HF']])
 
     def editCSV(self):
         pass

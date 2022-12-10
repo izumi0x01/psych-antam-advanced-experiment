@@ -63,6 +63,8 @@ void setup() {
 
 }
 
+int initializeSerialDataResult = -1;
+int signalSerialDataResult = -1;
 void loop() {
 
   // Serial.println("---InLoop---");
@@ -71,34 +73,52 @@ void loop() {
   // Serial.print("Serial.peek() : ");
   // Serial.println(Serial.peek());
 
+  
   if(isAirInjectSignalRecievable == false)
   {
-    if(RxInitialSetting(&setMeasuringTime, &setPressure) == 1)
+    signalSerialDataResult = RxMeasuringSignal();
+    initializeSerialDataResult = RxInitialSetting(&setMeasuringTime, &setPressure);
+
+    if(signalSerialDataResult == 0 && initializeSerialDataResult == 1)
     {
       SetPressure(setPressure);
-      isAirInjectSignalRecievable = true;
+      measuringTime = setMeasuringTime;
       SolenoidValve(0);
-      delay(15);
+      delay(55);
     }
-    else if(RxInitialSetting(&setMeasuringTime, &setPressure) == -1)
+    else if(signalSerialDataResult == 0 && initializeSerialDataResult == -1)
     {
       SetPressure(0);
       SolenoidValve(0);
-      delay(15);
+      delay(55);
+    }
+    else if(signalSerialDataResult == 0 && initializeSerialDataResult == 0)
+    {
+      SetPressure(0);
+      SolenoidValve(0);
+      delay(55);
+    }
+
+    if(signalSerialDataResult == 1)
+    {
+      isAirInjectSignalRecievable = true;
+    }
+    else if(signalSerialDataResult == 9)
+    {
+      SolenoidValve(1);
+      delay(500);
+      SolenoidValve(0);
     }
   }
+  //状態が-1がデフォで何もしない,1なら計測開始の信号受信,2なら画像処理の信号として空気発射,3なら計測終了の信号受信,
   else if(isAirInjectSignalRecievable == true)
   {
-    //状態が-1がデフォで何もしない,1なら計測開始の信号受信,2なら画像処理の信号として空気発射,3なら計測終了の信号受信,9ならユーザの入力として空気を発射
-    if(RxMeasuringSignal() == -1)
+    signalSerialDataResult = RxMeasuringSignal();
+    if(signalSerialDataResult == -1)
     {
 
     }
-    else if(RxMeasuringSignal() == 1)
-    {
-      
-    }
-    else if(RxMeasuringSignal() == 2)
+    else if(signalSerialDataResult == 2)
     {
       if (elapsedDt == -1)
       {
@@ -106,7 +126,7 @@ void loop() {
         SolenoidValve(1);
       }
     }
-    else if(RxMeasuringSignal() == 3)
+    else if(signalSerialDataResult == 3)
     {
       //設定の初期化
       isAirInjectSignalRecievable = false;
@@ -115,11 +135,10 @@ void loop() {
       measuringTime = -1;
       SolenoidValve(0);
     }
-    else if(RxMeasuringSignal() == 9)
+    else if(signalSerialDataResult == 9)
     {
       if (elapsedDt == -1)
       {
-        measuringTime = 100;
         trigerredTime = now();
         SolenoidValve(1);
       }
@@ -160,19 +179,17 @@ int RxMeasuringSignal(){
   if (Serial.available() == 0)
     return -1;
 
-  if (Serial.available() >= 2)
-    return -1;
+  if (Serial.available() >= 10)
+    return 0;
 
   char rcv = Serial.read();
 
-  if(rcv == '0')
-    return -1;
-  else if(rcv == '1')
-    return 0;
-  else if(rcv == '2')
+  if(rcv == '1')
     return 1;
-  else if(rcv == '3')
+  else if(rcv == '2')
     return 2;
+  else if(rcv == '3')
+    return 3;
   else if(rcv == '9')
     return 9;
 
@@ -276,6 +293,9 @@ confirm_pos:
   //エラーが出てタイムアウトした場合は,JSONOBJECTの要素に0要素が格納される。エラー処理。
   if (_d == long(0) || _p == float(0))
     return -1;
+
+  if (_d == long(9999) || _p == float(9999))
+    return 0;
 
   //データがセットされたタイミングでtrigerが起動.
   sendData["Err"] = 0;

@@ -6,6 +6,7 @@ import mySerial
 import myWindow
 import sys
 import tkinter as tk
+import copy
 
 try:
     # initialize
@@ -24,17 +25,18 @@ try:
         if _mySerial.ArduinoPort == NULL:
             continue
 
-        data: dict = _mySerial.ReadData()
-        data = _mySerial.ReshapeData(data)
-        _mySerial.PrintData(data)
+        # copy()メソッドで辞書を作らないと怒られる
+        decodedData: dict = _mySerial.ReadData()
+        reshapedData = _mySerial.ReshapeData(copy.copy(decodedData))
+        # _mySerial.PrintData(copy.copy(reshapedData))
 
         if _myWindow.IsMeasuring == False:
             continue
 
-        if (data != None) and (data != NULL) and (_myCSV.IsFileOpened()):
-            # _mySerial.PrintData(data)
-            print(data)
-            _myCSV.AddRow(data)
+        if (reshapedData != None) and (reshapedData != NULL) and (_myCSV.IsFileOpened()):
+            # _mySerial.PrintData(copy.copy(reshapedData))
+            print(reshapedData)
+            _myCSV.AddRow(reshapedData)
 
 # Ctrl-Cでプログラムの終了
 except KeyboardInterrupt:
