@@ -49,7 +49,7 @@ void setup() {
   Serial.setTimeout(50);
 
   //タイマ割り込みの設定
-  MsTimer2::set(300, InterruptSerial);
+  MsTimer2::set(10, InterruptSerial);
   MsTimer2::start();
 
   //ピンモードの設定

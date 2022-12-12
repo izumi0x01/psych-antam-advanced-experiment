@@ -97,7 +97,7 @@ class Serial:
             print("[Port is not opened]")
             return NULL
 
-        print("[Inject Air sended]\n")
+        print("[Inject Air Signal sended]\n")
         self.__openSerial.write(bytes('9', 'utf-8'))
 
     # マイコンからのシリアル通信のデータがあれば、それを読み取る.
