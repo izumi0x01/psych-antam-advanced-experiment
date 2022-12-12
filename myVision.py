@@ -69,7 +69,8 @@ class Vision:
         if railPointList != NULL:
             grayImage, railPointList = self.SortRailPointList(
                 grayImage, railPointList)
-            # self.CalcRailDistance(grayImage, railPointList)
+            self.CalcRailWidthDistance(grayImage, railPointList)
+            self.CalcRailHeightDistance(grayImage, railPointList)
         cv2.imshow(self.MASKED_WINDOW_NAME, grayImage)
 
     def ToBinaryImage(self, frame):
@@ -152,10 +153,29 @@ class Vision:
     def CalcCenterOfGravity(self):
         pass
 
-    def CalcRailDistance(self, railPointList):
+    def CalcRailWidthDistance(self, grayImage, railPointList):
+        railWidthDistance: int = railPointList[2][0] - railPointList[0][0] + 1
+        text = "rail width pixel : " + str(railWidthDistance)
+        coordinates = (50, 50)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        fontScale = 1
+        color = (255, 0, 255)
+        thickness = 2
+        grayImage = cv2.putText(grayImage, text, coordinates,
+                                font, fontScale, color, thickness, cv2.LINE_AA)
+        return railWidthDistance
 
-        railDistance = 0
-        return railDistance
+    def CalcRailHeightDistance(self, grayImage, railPointList):
+        railHeightDistance: int = railPointList[1][1] - railPointList[0][1] + 1
+        text = "rail height pixel : " + str(railHeightDistance)
+        coordinates = (50, 100)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        fontScale = 1
+        color = (255, 0, 255)
+        thickness = 2
+        grayImage = cv2.putText(grayImage, text, coordinates,
+                                font, fontScale, color, thickness, cv2.LINE_AA)
+        return railHeightDistance
 
     # ノズルとダンゴムシとの重心距離を計算して距離を返す。
     def CalcDistance(self, center_of_nozzle, center_of_gravity):
