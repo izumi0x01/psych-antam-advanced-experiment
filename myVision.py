@@ -17,9 +17,11 @@ class Vision:
     FPS = 10
     MAIN_WINDOW_NAME = "RAW"
     MASKED_WINDOW_NAME = "Masked"
+    WINDOW_HEIGHT = 0
+    WINDOW_WIDTH = 0
 
     def __init__(self):
-        self.__threshold: int = 145
+        self.__threshold: int = 200
         self.distance = 0
 
     def MakeWindow(self):
@@ -30,10 +32,12 @@ class Vision:
         if not self.__cam.isOpened():
             return print("failure video capture")
         self.__cam.set(cv2.CAP_PROP_FPS, self.FPS)
+        self.WINDOW_HEIGHT = int(self.__cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.WINDOW_WIDTH = int(self.__cam.get(cv2.CAP_PROP_FRAME_WIDTH))
         cv2.createTrackbar("height", self.MASKED_WINDOW_NAME, 0,
-                           int(self.__cam.get(cv2.CAP_PROP_FRAME_HEIGHT) * 0.5), self.Y0ChangedEventHandler)
+                           self.WINDOW_HEIGHT // 2, self.Y0ChangedEventHandler)
         cv2.createTrackbar("width", self.MASKED_WINDOW_NAME, 0,
-                           int(self.__cam.get(cv2.CAP_PROP_FRAME_WIDTH) * 0.5), self.X0ChangedEventHandler)
+                           self.WINDOW_WIDTH // 2, self.X0ChangedEventHandler)
 
     def SleshHoldChangedEventHandler(self, position):
         self.__threshold = cv2.getTrackbarPos(
@@ -65,9 +69,9 @@ class Vision:
         # frame全体から画像の抽出
         # Frame = Frame1[self.Y0:self.Y1, self.X0:self.X1]
         grayImage = self.ToBinaryImage(frame)
-        grayImage, railPointList = self.GetRailCountour(grayImage)
+        (grayImage, railPointList) = self.GetRailCountour(grayImage)
         if railPointList != NULL:
-            grayImage, railPointList = self.SortRailPointList(
+            (grayImage, railPointList) = self.SortRailPointList(
                 grayImage, railPointList)
             self.CalcRailWidthDistance(grayImage, railPointList)
             self.CalcRailHeightDistance(grayImage, railPointList)
@@ -75,12 +79,25 @@ class Vision:
 
     def ToBinaryImage(self, frame):
         ret, grayImage = cv2.threshold(
-            cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), self.__threshold, 255, cv2.THRESH_BINARY_INV)
+            cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), self.__threshold, 255, cv2.THRESH_BINARY)
+        grayImage = cv2.adaptiveThreshold(
+            grayImage, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, blockSize=101, C=-30)
         return grayImage
 
     def GetRailCountour(self, grayImage):
         contours, hierarchy = cv2.findContours(
             grayImage, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        approx_contours = []
+        for i, cnt in enumerate(contours):
+            # 輪郭の周囲の長さを計算する。
+            arclen = cv2.arcLength(cnt, True)
+            # 輪郭を近似する。
+            approx_cnt = cv2.approxPolyDP(
+                cnt, epsilon=0.005 * arclen, closed=True)
+            approx_contours.append(approx_cnt)
+        triangles = list(filter(lambda x: len(x) < 10, approx_contours))
+        contours = list(filter(lambda x: (cv2.contourArea(
+            x) > 8000 and cv2.contourArea(x) < 18000), triangles))
         if len(contours) == 0:
             return grayImage, NULL
 
@@ -132,10 +149,16 @@ class Vision:
 
         newlyRailPointList[1] = (
             distFromBaseList[0][1], distFromBaseList[0][2])
-        newlyRailPointList[2] = (
-            distFromBaseList[1][1], distFromBaseList[1][2])
-        newlyRailPointList[3] = (
-            distFromBaseList[2][1], distFromBaseList[2][2])
+        if distFromBaseList[1][2] >= distFromBaseList[2][2]:
+            newlyRailPointList[2] = (
+                distFromBaseList[1][1], distFromBaseList[1][2])
+            newlyRailPointList[3] = (
+                distFromBaseList[2][1], distFromBaseList[2][2])
+        elif distFromBaseList[1][2] < distFromBaseList[2][2]:
+            newlyRailPointList[3] = (
+                distFromBaseList[1][1], distFromBaseList[1][2])
+            newlyRailPointList[2] = (
+                distFromBaseList[2][1], distFromBaseList[2][2])
 
         # print(newlyRailPointList)
 
@@ -154,8 +177,10 @@ class Vision:
         pass
 
     def CalcRailWidthDistance(self, grayImage, railPointList):
-        railWidthDistance: int = railPointList[2][0] - railPointList[0][0] + 1
-        text = "rail width pixel : " + str(railWidthDistance)
+        railWidthDistance: float = math.sqrt(
+            abs(railPointList[2][0] - railPointList[0][0] + 1)**2 + abs(railPointList[2][1] - railPointList[1][1])**2 + 1)
+        text = "rail width : " + \
+            str(int(railWidthDistance))
         coordinates = (50, 50)
         font = cv2.FONT_HERSHEY_SIMPLEX
         fontScale = 1
@@ -166,8 +191,9 @@ class Vision:
         return railWidthDistance
 
     def CalcRailHeightDistance(self, grayImage, railPointList):
-        railHeightDistance: int = railPointList[1][1] - railPointList[0][1] + 1
-        text = "rail height pixel : " + str(railHeightDistance)
+        railHeightDistance: float = math.sqrt(
+            abs(railPointList[1][0] - railPointList[0][0] + 1)**2 + abs(railPointList[1][1] - railPointList[0][1])**2 + 1)
+        text = "rail height pixel : " + str(int(railHeightDistance))
         coordinates = (50, 100)
         font = cv2.FONT_HERSHEY_SIMPLEX
         fontScale = 1
