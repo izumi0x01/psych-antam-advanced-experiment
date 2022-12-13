@@ -1,13 +1,14 @@
 from ast import While
 from asyncio.windows_events import NULL
+from pickle import NONE
 from turtle import distance, update
 from cv2 import contourArea
-import unicurses
 import numpy as np
 import cv2
 import sys
 import math
 import copy
+import datetime
 
 
 class Vision:
@@ -25,6 +26,8 @@ class Vision:
     def __init__(self):
         self.__threshold: int = 200
         self.distance = 0
+        self.__maskedImage = NULL
+        self.__railPointList = NULL
 
     def MakeWindow(self):
         cv2.namedWindow(self.BINARY_WINDOW_NAME)
@@ -36,6 +39,7 @@ class Vision:
         self.__cam.set(cv2.CAP_PROP_FPS, self.FPS)
         self.WINDOW_HEIGHT = int(self.__cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.WINDOW_WIDTH = int(self.__cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+
         # self.Y1 = self.WINDOW_HEIGHT
         # self.X1 = self.WINDOW_WIDTH
         # cv2.createTrackbar("substract_height", self.BINARY_WINDOW_NAME, 0,
@@ -67,7 +71,6 @@ class Vision:
         ret, frame = self.__cam.read()
         if not ret:
             return NULL
-        cv2.imshow(self.MAIN_WINDOW_NAME, frame)
         # frame全体から画像の抽出
         # frame = copy.copy(frame1[self.X0:self.X1, self.Y0:self.Y1])
         grayImage = self.ToBinaryImage(frame)
@@ -75,9 +78,22 @@ class Vision:
         if railPointList != NULL:
             (grayImage, railPointList) = self.SortRailPointList(
                 grayImage, railPointList)
-            self.CalcRailWidthDistance(grayImage, railPointList)
-            self.CalcRailHeightDistance(grayImage, railPointList)
-            self.CalcDangomusiMoment(grayImage, frame, railPointList)
+            self.__railPointList = copy.deepcopy(railPointList)
+
+        # if np.all(self.__maskedImage != NULL) and np.all(self.__maskedImage != None):
+        #     print(self.__maskedImage)
+        #     cv2.imshow(self.MASKED_WINDOW_NAME, self.__maskedImage)
+
+        if self.__railPointList != NULL:
+            print(str(datetime.datetime.now()) + str(self.__railPointList))
+            self.CalcRailWidthDistance(frame, self.__railPointList)
+            self.CalcRailHeightDistance(frame, self.__railPointList)
+            self.DrawRailFlamePoint(frame, self.__railPointList)
+            cv2.imshow(self.MAIN_WINDOW_NAME, frame)
+            # エラー次第では動く？
+            # self.MakeRailMask(
+            #     grayImage, frame, self.__railPointList)
+
         cv2.imshow(self.BINARY_WINDOW_NAME, grayImage)
 
     def ToBinaryImage(self, frame):
@@ -90,17 +106,17 @@ class Vision:
     def GetRailCountour(self, grayImage):
         contours, hierarchy = cv2.findContours(
             grayImage, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        approx_contours = []
-        for i, cnt in enumerate(contours):
-            # 輪郭の周囲の長さを計算する。
-            arclen = cv2.arcLength(cnt, True)
-            # 輪郭を近似する。
-            approx_cnt = cv2.approxPolyDP(
-                cnt, epsilon=0.005 * arclen, closed=True)
-            approx_contours.append(approx_cnt)
-        triangles = list(filter(lambda x: len(x) < 10, approx_contours))
+        # approx_contours = []
+        # for i, cnt in enumerate(contours):
+        #     # 輪郭の周囲の長さを計算する。
+        #     arclen = cv2.arcLength(cnt, True)
+        #     # 輪郭を近似する。
+        #     approx_cnt = cv2.approxPolyDP(
+        #         cnt, epsilon=0.005 * arclen, closed=True)
+        #     approx_contours.append(approx_cnt)
+        # triangles = list(filter(lambda x: len(x) == 4, approx_contours))
         contours = list(filter(lambda x: (cv2.contourArea(
-            x) > 8000 and cv2.contourArea(x) < 18000), triangles))
+            x) > 8000 and cv2.contourArea(x) < 18000), contours))
         if len(contours) == 0:
             return grayImage, NULL
 
@@ -165,16 +181,17 @@ class Vision:
 
         # print(newlyRailPointList)
 
-        grayImage = cv2.circle(
-            grayImage, newlyRailPointList[0], 5, (255, 255, 0), -1)  # aqua
-        grayImage = cv2.circle(
-            grayImage, newlyRailPointList[1], 5, (0, 255, 0), -1)  # lime
-        grayImage = cv2.circle(
-            grayImage, newlyRailPointList[2], 5, (255, 0, 0), -1)  # blue
-        grayImage = cv2.circle(
-            grayImage, newlyRailPointList[3], 5, (0, 255, 255), -1)  # yellow
-
         return grayImage, newlyRailPointList
+
+    def DrawRailFlamePoint(self, grayImage, railPointList):
+        grayImage = cv2.circle(
+            grayImage, railPointList[0], 5, (255, 255, 0), -1)  # aqua
+        grayImage = cv2.circle(
+            grayImage, railPointList[1], 5, (0, 255, 0), -1)  # lime
+        grayImage = cv2.circle(
+            grayImage, railPointList[2], 5, (255, 0, 0), -1)  # blue
+        grayImage = cv2.circle(
+            grayImage, railPointList[3], 5, (0, 255, 255), -1)  # yellow
 
     def CalcCenterOfGravity(self):
         pass
@@ -209,36 +226,40 @@ class Vision:
         return railHeightDistance
 
     # ダンゴムシの重心を検出する
-    def CalcDangomusiMoment(self, grayImage, rawImage, railPointList=[]):
+    def MakeRailMask(self, grayImage, rawImage, railPointList=[]):
         (x0, y0) = (min(railPointList[0][0], railPointList[1][0]),
                     min(railPointList[0][1], railPointList[2][1]))
         editedRawImage = rawImage[y0: max(railPointList[1][1], railPointList[3][1]),
                                   x0: max(railPointList[2][0], railPointList[3][0])]
-        editedGrayImage = grayImage[y0: max(railPointList[1][1], railPointList[3][1]),
-                                    x0: max(railPointList[2][0], railPointList[3][0])]
 
         npbox = np.array([[railPointList[0][0], railPointList[0][1]],
                           [railPointList[2][0], railPointList[2][1]],
                           [railPointList[3][0], railPointList[3][1]],
                           [railPointList[1][0], railPointList[1][1]]])
         npbox = np.int0(npbox)
-        print(npbox)
+        # print(npbox)
 
         mask = np.ones_like(grayImage)
         cv2.drawContours(mask, [npbox], -1,
                          color=(255, 255, 255), thickness=-1)
         mask = mask[y0: max(railPointList[1][1], railPointList[3][1]),
                     x0: max(railPointList[2][0], railPointList[3][0])]
-
+        mask = cv2.cvtColor(grayImage, cv2.COLOR_BGR2GRAY)
         # 背景画像のうち、合成する領域
-        im_out = cv2.bitwise_and(editedRawImage, mask)
+        # マスクをかけようとするとエラーが出る？
+        # maskedImage = cv2.bitwise_and(editedRawImage, mask)
+        # if np.any(maskedImage != None):
+        # cv2.imshow(self.MASKED_WINDOW_NAME, maskedImage)
 
-        cv2.imshow(self.MASKED_WINDOW_NAME, im_out)
+        # if np.any(maskedImage == NULL):
+        #     return NULL
+        # else:
+        # return maskedImage
 
-        # cv2.imshow(self.MASKED_WINDOW_NAME, bg_roi)
+        # cv2.imshow(self.MASKED_WINDOW_NAME, self.maskedImage)
 
-        # return grayImage, (1, 1)
-
+    def CalcDangomusiMoment(self):
+        pass
     # cameraの映像を表示する
 
     def camera_window(self):
