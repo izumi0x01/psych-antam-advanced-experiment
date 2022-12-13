@@ -12,13 +12,14 @@ import copy
 
 class Vision:
 
-    X0, Y0 = 0, 0
-    X1, Y1 = 0, 0
     FPS = 10
     MAIN_WINDOW_NAME = "RAW"
     MASKED_WINDOW_NAME = "Masked"
     WINDOW_HEIGHT = 0
     WINDOW_WIDTH = 0
+    X0, Y0 = 1, 1
+    X1: int
+    Y1: int
 
     def __init__(self):
         self.__threshold: int = 200
@@ -34,28 +35,28 @@ class Vision:
         self.__cam.set(cv2.CAP_PROP_FPS, self.FPS)
         self.WINDOW_HEIGHT = int(self.__cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.WINDOW_WIDTH = int(self.__cam.get(cv2.CAP_PROP_FRAME_WIDTH))
-        cv2.createTrackbar("height", self.MASKED_WINDOW_NAME, 0,
-                           self.WINDOW_HEIGHT // 2, self.Y0ChangedEventHandler)
-        cv2.createTrackbar("width", self.MASKED_WINDOW_NAME, 0,
-                           self.WINDOW_WIDTH // 2, self.X0ChangedEventHandler)
+        # self.Y1 = self.WINDOW_HEIGHT
+        # self.X1 = self.WINDOW_WIDTH
+        # cv2.createTrackbar("substract_height", self.MASKED_WINDOW_NAME, 0,
+        #                    self.WINDOW_HEIGHT // 2, self.YChangedEventHandler)
+        # cv2.createTrackbar("substract_width", self.MASKED_WINDOW_NAME, 0,
+        #                    self.WINDOW_WIDTH, self.XChangedEventHandler)
 
     def SleshHoldChangedEventHandler(self, position):
         self.__threshold = cv2.getTrackbarPos(
             "slesh_hold", self.MASKED_WINDOW_NAME)
 
-    def X0ChangedEventHandler(self, position):
-        self.X0 = cv2.getTrackbarPos("width", self.MASKED_WINDOW_NAME)
+    # def XChangedEventHandler(self, position):
+    #     self.X0 = cv2.getTrackbarPos(
+    #         "substract_width", self.MASKED_WINDOW_NAME)
+    #     self.X1 = self.WINDOW_WIDTH
+    #     - cv2.getTrackbarPos("substract_width", self.MASKED_WINDOW_NAME)
 
-    def Y0ChangedEventHandler(self, position):
-        self.Y0 = cv2.getTrackbarPos("height", self.MASKED_WINDOW_NAME)
-
-    def X1ChangedEventHandler(self, position):
-        self.X1 = int(self.__cam.get(cv2.CAP_PROP_FRAME_WIDTH))
-        - cv2.getTrackbarPos("width", self.MASKED_WINDOW_NAME)
-
-    def Y1ChangedEventHandler(self, position):
-        self.Y1 = int(self.__cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        - cv2.getTrackbarPos("height", self.MASKED_WINDOW_NAME)
+    # def YChangedEventHandler(self, position):
+    #     self.Y0 = cv2.getTrackbarPos(
+    #         "substract_height", self.MASKED_WINDOW_NAME)
+    #     self.Y1 = self.WINDOW_HEIGHT
+    #     - cv2.getTrackbarPos("substract_height", self.MASKED_WINDOW_NAME)
 
     def UpdateWindow(self):
         # 描画の待ち時間設定
@@ -67,7 +68,7 @@ class Vision:
             return NULL
         cv2.imshow(self.MAIN_WINDOW_NAME, frame)
         # frame全体から画像の抽出
-        # Frame = Frame1[self.Y0:self.Y1, self.X0:self.X1]
+        # frame = copy.copy(frame1[self.X0:self.X1, self.Y0:self.Y1])
         grayImage = self.ToBinaryImage(frame)
         (grayImage, railPointList) = self.GetRailCountour(grayImage)
         if railPointList != NULL:
@@ -79,9 +80,9 @@ class Vision:
 
     def ToBinaryImage(self, frame):
         ret, grayImage = cv2.threshold(
-            cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), self.__threshold, 255, cv2.THRESH_BINARY)
+            cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), self.__threshold, 255, cv2.THRESH_BINARY_INV)
         grayImage = cv2.adaptiveThreshold(
-            grayImage, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, blockSize=101, C=-30)
+            grayImage, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, blockSize=101, C=30)
         return grayImage
 
     def GetRailCountour(self, grayImage):
@@ -176,7 +177,8 @@ class Vision:
     def CalcCenterOfGravity(self):
         pass
 
-    def CalcRailWidthDistance(self, grayImage, railPointList):
+    def CalcRailWidthDistance(self, grayImage, railPointList=[]):
+        railWidthDistance = 0
         railWidthDistance: float = math.sqrt(
             abs(railPointList[2][0] - railPointList[0][0] + 1)**2 + abs(railPointList[2][1] - railPointList[1][1])**2 + 1)
         text = "rail width : " + \
@@ -190,7 +192,8 @@ class Vision:
                                 font, fontScale, color, thickness, cv2.LINE_AA)
         return railWidthDistance
 
-    def CalcRailHeightDistance(self, grayImage, railPointList):
+    def CalcRailHeightDistance(self, grayImage, railPointList=[]):
+        railHeightDistance = 0
         railHeightDistance: float = math.sqrt(
             abs(railPointList[1][0] - railPointList[0][0] + 1)**2 + abs(railPointList[1][1] - railPointList[0][1])**2 + 1)
         text = "rail height pixel : " + str(int(railHeightDistance))
