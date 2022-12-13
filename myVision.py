@@ -14,6 +14,7 @@ class Vision:
 
     FPS = 10
     MAIN_WINDOW_NAME = "RAW"
+    BINARY_WINDOW_NAME = "Binary"
     MASKED_WINDOW_NAME = "Masked"
     WINDOW_HEIGHT = 0
     WINDOW_WIDTH = 0
@@ -26,8 +27,8 @@ class Vision:
         self.distance = 0
 
     def MakeWindow(self):
-        cv2.namedWindow(self.MASKED_WINDOW_NAME)
-        cv2.createTrackbar("slesh_hold", self.MASKED_WINDOW_NAME, self.__threshold,
+        cv2.namedWindow(self.BINARY_WINDOW_NAME)
+        cv2.createTrackbar("slesh_hold", self.BINARY_WINDOW_NAME, self.__threshold,
                            255, self.SleshHoldChangedEventHandler)
         self.__cam = cv2.VideoCapture(1+cv2.CAP_DSHOW)  # 引数に番号だけ渡すのではダメだった模様
         if not self.__cam.isOpened():
@@ -37,26 +38,26 @@ class Vision:
         self.WINDOW_WIDTH = int(self.__cam.get(cv2.CAP_PROP_FRAME_WIDTH))
         # self.Y1 = self.WINDOW_HEIGHT
         # self.X1 = self.WINDOW_WIDTH
-        # cv2.createTrackbar("substract_height", self.MASKED_WINDOW_NAME, 0,
+        # cv2.createTrackbar("substract_height", self.BINARY_WINDOW_NAME, 0,
         #                    self.WINDOW_HEIGHT // 2, self.YChangedEventHandler)
-        # cv2.createTrackbar("substract_width", self.MASKED_WINDOW_NAME, 0,
+        # cv2.createTrackbar("substract_width", self.BINARY_WINDOW_NAME, 0,
         #                    self.WINDOW_WIDTH, self.XChangedEventHandler)
 
     def SleshHoldChangedEventHandler(self, position):
         self.__threshold = cv2.getTrackbarPos(
-            "slesh_hold", self.MASKED_WINDOW_NAME)
+            "slesh_hold", self.BINARY_WINDOW_NAME)
 
     # def XChangedEventHandler(self, position):
     #     self.X0 = cv2.getTrackbarPos(
-    #         "substract_width", self.MASKED_WINDOW_NAME)
+    #         "substract_width", self.BINARY_WINDOW_NAME)
     #     self.X1 = self.WINDOW_WIDTH
-    #     - cv2.getTrackbarPos("substract_width", self.MASKED_WINDOW_NAME)
+    #     - cv2.getTrackbarPos("substract_width", self.BINARY_WINDOW_NAME)
 
     # def YChangedEventHandler(self, position):
     #     self.Y0 = cv2.getTrackbarPos(
-    #         "substract_height", self.MASKED_WINDOW_NAME)
+    #         "substract_height", self.BINARY_WINDOW_NAME)
     #     self.Y1 = self.WINDOW_HEIGHT
-    #     - cv2.getTrackbarPos("substract_height", self.MASKED_WINDOW_NAME)
+    #     - cv2.getTrackbarPos("substract_height", self.BINARY_WINDOW_NAME)
 
     def UpdateWindow(self):
         # 描画の待ち時間設定
@@ -76,7 +77,8 @@ class Vision:
                 grayImage, railPointList)
             self.CalcRailWidthDistance(grayImage, railPointList)
             self.CalcRailHeightDistance(grayImage, railPointList)
-        cv2.imshow(self.MASKED_WINDOW_NAME, grayImage)
+            self.CalcDangomusiMoment(grayImage, frame, railPointList)
+        cv2.imshow(self.BINARY_WINDOW_NAME, grayImage)
 
     def ToBinaryImage(self, frame):
         ret, grayImage = cv2.threshold(
@@ -150,12 +152,12 @@ class Vision:
 
         newlyRailPointList[1] = (
             distFromBaseList[0][1], distFromBaseList[0][2])
-        if distFromBaseList[1][2] >= distFromBaseList[2][2]:
+        if distFromBaseList[1][2] <= distFromBaseList[2][2]:
             newlyRailPointList[2] = (
                 distFromBaseList[1][1], distFromBaseList[1][2])
             newlyRailPointList[3] = (
                 distFromBaseList[2][1], distFromBaseList[2][2])
-        elif distFromBaseList[1][2] < distFromBaseList[2][2]:
+        elif distFromBaseList[1][2] > distFromBaseList[2][2]:
             newlyRailPointList[3] = (
                 distFromBaseList[1][1], distFromBaseList[1][2])
             newlyRailPointList[2] = (
@@ -206,22 +208,33 @@ class Vision:
                                 font, fontScale, color, thickness, cv2.LINE_AA)
         return railHeightDistance
 
-    # ノズルとダンゴムシとの重心距離を計算して距離を返す。
-    def CalcDistance(self, center_of_nozzle, center_of_gravity):
-        _distance = 0
-        self.distance = _distance
+    # ダンゴムシの重心を検出する
+    def CalcDangomusiMoment(self, grayImage, rawImage, railPointList=[]):
+        editedRawImage = rawImage[min(railPointList[0][1], railPointList[2][1]): max(railPointList[1][1], railPointList[3][1]),
+                                  min(railPointList[0][0], railPointList[1][0]): max(railPointList[2][0], railPointList[3][0])]
+        editedGrayImage = grayImage[min(railPointList[0][1], railPointList[2][1]): max(railPointList[1][1], railPointList[3][1]),
+                                    min(railPointList[0][0], railPointList[1][0]): max(railPointList[2][0], railPointList[3][0])]
+        # cv2.imshow(self.MASKED_WINDOW_NAME, editedRawImage)
+        npbox = np.array([[railPointList[0][0], railPointList[0][1]], [
+            railPointList[1][0], railPointList[1][1]], [railPointList[2][0], railPointList[2][1]], [railPointList[3][0], railPointList[3][1]]])
+        npbox = np.int0(npbox)
+        print(npbox)
 
-    # ダンゴムシの中心を計算する
-    def calc_center_of_gravity(self):
-        _center_of_gravity = 0
-        return _center_of_gravity
+        mask = np.zeros_like(grayImage)
+        cv2.drawContours(mask, [npbox], -1, color=255, thickness=-1)
+        x, y = railPointList[0][0], railPointList[0][1]
+        # x, y = 10, 10
+        w = editedRawImage.shape[1]
+        h = editedRawImage.shape[0]
+        fg_roi = editedRawImage[:h, :w]  # 前傾画像のうち、合成する領域
+        bg_roi = grayImage[y: y + h, x: x + w]  # 背景画像のうち、合成する領域
+        bg_roi[:] = np.where(mask[:h, :w] == 1, bg_roi, fg_roi)
+        # cv2.imshow(self.MASKED_WINDOW_NAME, bg_roi)
 
-    # ノズルの中心位置を計算する
-    def calc_center_of_nozzle(self):
-        _calc_center_of_nozzle = 0
-        return _calc_center_of_nozzle
+        # return grayImage, (1, 1)
 
     # cameraの映像を表示する
+
     def camera_window(self):
         delay = 1
         window_name = "frame"
