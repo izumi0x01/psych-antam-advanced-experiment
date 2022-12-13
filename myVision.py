@@ -84,7 +84,7 @@ class Vision:
         ret, grayImage = cv2.threshold(
             cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), self.__threshold, 255, cv2.THRESH_BINARY_INV)
         grayImage = cv2.adaptiveThreshold(
-            grayImage, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, blockSize=101, C=30)
+            grayImage, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, blockSize=21, C=30)
         return grayImage
 
     def GetRailCountour(self, grayImage):
@@ -210,25 +210,36 @@ class Vision:
 
     # ダンゴムシの重心を検出する
     def CalcDangomusiMoment(self, grayImage, rawImage, railPointList=[]):
-        editedRawImage = rawImage[min(railPointList[0][1], railPointList[2][1]): max(railPointList[1][1], railPointList[3][1]),
-                                  min(railPointList[0][0], railPointList[1][0]): max(railPointList[2][0], railPointList[3][0])]
-        editedGrayImage = grayImage[min(railPointList[0][1], railPointList[2][1]): max(railPointList[1][1], railPointList[3][1]),
-                                    min(railPointList[0][0], railPointList[1][0]): max(railPointList[2][0], railPointList[3][0])]
-        # cv2.imshow(self.MASKED_WINDOW_NAME, editedRawImage)
-        npbox = np.array([[railPointList[0][0], railPointList[0][1]], [
-            railPointList[1][0], railPointList[1][1]], [railPointList[2][0], railPointList[2][1]], [railPointList[3][0], railPointList[3][1]]])
+        (x0, y0) = (min(railPointList[0][0], railPointList[1][0]),
+                    min(railPointList[0][1], railPointList[2][1]))
+        editedRawImage = rawImage[y0: max(railPointList[1][1], railPointList[3][1]),
+                                  x0: max(railPointList[2][0], railPointList[3][0])]
+
+        npbox = np.array([[railPointList[0][0], railPointList[0][1]],
+                          [railPointList[2][0], railPointList[2][1]], [railPointList[3][0], railPointList[3][1]], [railPointList[1][0], railPointList[1][1]]])
         npbox = np.int0(npbox)
         print(npbox)
 
-        mask = np.zeros_like(grayImage)
-        cv2.drawContours(mask, [npbox], -1, color=255, thickness=-1)
-        x, y = railPointList[0][0], railPointList[0][1]
-        # x, y = 10, 10
-        w = editedRawImage.shape[1]
-        h = editedRawImage.shape[0]
-        fg_roi = editedRawImage[:h, :w]  # 前傾画像のうち、合成する領域
-        bg_roi = grayImage[y: y + h, x: x + w]  # 背景画像のうち、合成する領域
-        bg_roi[:] = np.where(mask[:h, :w] == 1, bg_roi, fg_roi)
+        mask = np.ones_like(grayImage)
+        cv2.drawContours(mask, [npbox], -1,
+                         color=(255, 255, 255), thickness=-1)
+        editedGrayImage = mask[y0: max(railPointList[1][1], railPointList[3][1]),
+                               x0: max(railPointList[2][0], railPointList[3][0])]
+
+        cv2.imshow(self.MASKED_WINDOW_NAME, editedGrayImage)
+        # # x, y = 10, 10
+        # w = editedRawImage.shape[1]
+        # h = editedRawImage.shape[0]
+        # fg_roi = editedRawImage[:h, :w]  # 前傾画像のうち、合成する領域
+        # bg_roi = editedGrayImage[:h, :w]
+
+        # 背景画像のうち、合成する領域
+        # color_bg_roi = cv2.cvtColor(bg_roi, cv2.COLOR_GRAY2BGR)
+        # bg_roi[:] = np.where(mask[:h, :w, np.newaxis] == 1,
+        #                      color_bg_roi, fg_roi)
+
+        # cv2.imshow(self.MASKED_WINDOW_NAME, bg_roi)
+
         # cv2.imshow(self.MASKED_WINDOW_NAME, bg_roi)
 
         # return grayImage, (1, 1)
