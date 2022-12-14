@@ -13,11 +13,13 @@ try:
     _mySerial = mySerial.Serial()
     _mySerial.ConfirmateComPort()
     _myCSV = myCSV.CSV()
-    # myVision = myVision.Vision()
+    _myVision = myVision.Vision()
     root = tk.Tk()
     _myWindow = myWindow.Window(root, _mySerial, _myCSV)
+    _myVision.MakeWindow()
 
     while True:
+        _myVision.UpdateWindow()
 
         _myWindow.update_idletasks()
         _myWindow.update()

@@ -176,6 +176,26 @@ class Window(tk.Frame):
         self.injectAirButton.bind("<Button-1>", self.InjectAirEventHandler)
         self.injectAirButton["state"] = "disable"
 
+        # 設定
+        self.tf4 = tk.Frame(root, relief='groove', bd=5)
+        self.tf4.grid(column=0, row=3, padx=self.FRAME_PADX,
+                      pady=self.FRAME_PADY, sticky=tk.E + tk.W)
+
+        # 4,マスクボタン
+        self.injectAirButton = tk.Button(
+            self.tf4, text='マスク固定', bg=self.BUTTON_DISABLED_BG_COLOR, bd=4, width=15)
+        self.injectAirButton.grid(
+            padx=10, pady=10, column=0, row=0, sticky='w')
+        self.injectAirButton.bind("<Button-1>", self.InjectAirEventHandler)
+        self.injectAirButton["state"] = "disable"
+
+        self.injectAirButton = tk.Button(
+            self.tf4, text='マスク解除', bg=self.BUTTON_DISABLED_BG_COLOR, bd=4, width=15)
+        self.injectAirButton.grid(
+            padx=10, pady=10, column=0, row=1, sticky='w')
+        self.injectAirButton.bind("<Button-1>", self.InjectAirEventHandler)
+        self.injectAirButton["state"] = "disable"
+
     def SendDataButtonEventHandler(self, event):
         if self.sendDataButton["state"] == "disabled":
             return NULL

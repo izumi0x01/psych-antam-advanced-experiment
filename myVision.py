@@ -70,8 +70,8 @@ class Vision:
     def ToBinaryImage(self, frame):
         ret, grayImage = cv2.threshold(
             cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), self.__threshold, 255, cv2.THRESH_BINARY_INV)
-        # grayImage = cv2.adaptiveThreshold(
-        #     grayImage, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, blockSize=51, C=10)
+        grayImage = cv2.adaptiveThreshold(
+            grayImage, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, blockSize=21, C=10)
         return grayImage
 
     def GetRailCountour(self, grayImage):
@@ -217,7 +217,6 @@ class Vision:
                     x0: max(railPointList[2][0], railPointList[3][0])]
         # 背景画像のうち、合成する領域
         splitedMask = cv2.split(mask)
-        print(splitedMask)
         if len(splitedMask) == 3:
             mask, g_, r_ = splitedMask
             editedRawImage[mask == 1] = [0, 0, 0]
