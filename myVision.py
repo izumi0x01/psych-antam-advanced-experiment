@@ -26,7 +26,6 @@ class Vision:
         self.__threshold: int = 200
         self.distance = 0
         self.__railPointList = NULL
-        self.__maskedImage = NULL
 
     def MakeWindow(self):
         cv2.namedWindow(self.BINARY_WINDOW_NAME)
@@ -53,23 +52,24 @@ class Vision:
             return NULL
         # frame全体から画像の抽出
         grayImage = self.ToBinaryImage(frame)
-        (grayImage, railPointList) = self.GetRailCountour(grayImage)
+        grayImage, railPointList = self.GetRailCountour(grayImage)
         if (self.MASK_FIXED_FLAG == False) and (railPointList != NULL):
-            (grayImage, railPointList) = self.SortRailPointList(
+            grayImage, railPointList = self.SortRailPointList(
                 grayImage, railPointList)
             self.__railPointList = copy.deepcopy(railPointList)
             self.DrawRailFlamePoint(grayImage, self.__railPointList)
 
         if (self.MASK_FIXED_FLAG == True) and (self.__railPointList != NULL):
             # print(str(datetime.datetime.now()) + str(self.__railPointList))
-            self.CalcRailWidthDistance(frame, self.__railPointList)
-            self.CalcRailHeightDistance(frame, self.__railPointList)
+            railWidthDistance = self.CalcRailWidthDistance(
+                frame, self.__railPointList)
+            railHeightDistance = self.CalcRailHeightDistance(
+                frame, self.__railPointList)
             # self.DrawRailFlamePoint(frame, self.__railPointList)
             cv2.imshow(self.MAIN_WINDOW_NAME, frame)
-            (self.__maskedImage, x0, y0) = self.MakeRailMask(
+            x0, y0, maskedRailRawImage = self.MakeRailMask(
                 grayImage, frame, self.__railPointList)
-            if self.__maskedImage != NULL:
-                self.CalcDangomusiMoment(self.__maskedImage, frame, x0, y0)
+            self.CalcDangomusiMoment(maskedRailRawImage, frame, x0, y0)
 
         cv2.imshow(self.BINARY_WINDOW_NAME, grayImage)
 
@@ -170,15 +170,11 @@ class Vision:
         grayImage = cv2.circle(
             grayImage, railPointList[3], 5, (0, 255, 255), -1)  # yellow
 
-    def CalcCenterOfGravity(self):
-        pass
-
     def CalcRailWidthDistance(self, grayImage, railPointList=[]):
         railWidthDistance = 0
         railWidthDistance: float = math.sqrt(
             abs(railPointList[2][0] - railPointList[0][0] + 1)**2 + abs(railPointList[2][1] - railPointList[1][1])**2 + 1)
-        text = "rail width : " + \
-            str(int(railWidthDistance))
+        text = "rail width : " + str(int(railWidthDistance))
         coordinates = (50, 50)
         font = cv2.FONT_HERSHEY_SIMPLEX
         fontScale = 1
@@ -202,7 +198,6 @@ class Vision:
                                 font, fontScale, color, thickness, cv2.LINE_AA)
         return railHeightDistance
 
-    # ダンゴムシの重心を検出する
     def MakeRailMask(self, grayImage, rawImage, railPointList=[]):
         (x0, y0) = (min(railPointList[0][0], railPointList[1][0]),
                     min(railPointList[0][1], railPointList[2][1]))
@@ -226,15 +221,30 @@ class Vision:
         if len(splitedMask) == 3 and editedRawImage.shape[0] != 0 and editedRawImage.shape[1] != 0:
             mask, g_, r_ = splitedMask
             editedRawImage[mask == 1] = [255, 255, 255]
-            # cv2.imshow(self.MASKED_WINDOW_NAME, editedRawImage)
-            return editedRawImage, (x0, y0)
+            return x0, y0, editedRawImage
         else:
-            return NULL, (x0, y0)
+            return x0, y0, editedRawImage
 
+    # ダンゴムシの重心を検出する
     def CalcDangomusiMoment(self, maskedImage, frame, x0, y0):
-        pass
-    # cameraの映像を表示する
+        maskedImage
+        gray = cv2.cvtColor(maskedImage, cv2.COLOR_BGR2GRAY)
+        ret, bin_img = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
+        contours, hierarchy = cv2.findContours(
+            bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours = list(filter(lambda x: (cv2.contourArea(
+            x) > 100 and cv2.contourArea(x) < 1500), contours))
 
+        if len(contours) == 0:
+            return NULL
+
+        print(cv2.contourArea(contours[0], False))
+
+        copy_bin_img = cv2.cvtColor(bin_img, cv2.COLOR_GRAY2BGR)
+        cv2.drawContours(copy_bin_img, [contours[0]], 0, (0, 0, 255), 2)
+        cv2.imshow(self.MASKED_WINDOW_NAME, copy_bin_img)
+
+    # cameraの映像を表示する
     def camera_window(self):
         delay = 1
         window_name = "frame"
