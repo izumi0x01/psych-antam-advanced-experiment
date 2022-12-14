@@ -53,23 +53,27 @@ class Vision:
         # frame全体から画像の抽出
         grayImage = self.ToBinaryImage(frame)
         grayImage, railPointList = self.GetRailCountour(grayImage)
-        if (self.MASK_FIXED_FLAG == False) and (railPointList != NULL):
+        if (not self.MASK_FIXED_FLAG) and (railPointList != NULL):
             grayImage, railPointList = self.SortRailPointList(
                 grayImage, railPointList)
             self.__railPointList = copy.deepcopy(railPointList)
             self.DrawRailFlamePoint(grayImage, self.__railPointList)
 
-        if (self.MASK_FIXED_FLAG == True) and (self.__railPointList != NULL):
+        if (self.MASK_FIXED_FLAG) and (self.__railPointList != NULL):
             # print(str(datetime.datetime.now()) + str(self.__railPointList))
             railWidthDistance = self.CalcRailWidthDistance(
                 frame, self.__railPointList)
             railHeightDistance = self.CalcRailHeightDistance(
                 frame, self.__railPointList)
             # self.DrawRailFlamePoint(frame, self.__railPointList)
-            cv2.imshow(self.MAIN_WINDOW_NAME, frame)
             x0, y0, maskedRailRawImage = self.MakeRailMask(
                 grayImage, frame, self.__railPointList)
-            self.CalcDangomusiMoment(maskedRailRawImage, frame, x0, y0)
+            moX, moY = self.CalcDangomusiMoment(maskedRailRawImage)
+            nozlePosX, nozlePosY, moX, moY, _distance = self.CalcDangomushiNozleDistance(
+                frame, x0, y0, moX, moY, railWidthDistance, railHeightDistance)
+            frame = self.PrintDangomusiNozleDistance(
+                frame, nozlePosX, nozlePosY, moX, moY, _distance)
+            cv2.imshow(self.MAIN_WINDOW_NAME, frame)
 
         cv2.imshow(self.BINARY_WINDOW_NAME, grayImage)
 
@@ -201,8 +205,9 @@ class Vision:
     def MakeRailMask(self, grayImage, rawImage, railPointList=[]):
         (x0, y0) = (min(railPointList[0][0], railPointList[1][0]),
                     min(railPointList[0][1], railPointList[2][1]))
-        editedRawImage = rawImage[y0: max(railPointList[1][1], railPointList[3][1]),
-                                  x0: max(railPointList[2][0], railPointList[3][0])]
+        copyiedRawImage = copy.copy(rawImage)
+        editedRawImage = copyiedRawImage[y0: max(railPointList[1][1], railPointList[3][1]),
+                                         x0: max(railPointList[2][0], railPointList[3][0])]
 
         npbox = np.array([[railPointList[0][0], railPointList[0][1]],
                           [railPointList[2][0], railPointList[2][1]],
@@ -226,25 +231,67 @@ class Vision:
             return x0, y0, editedRawImage
 
     # ダンゴムシの重心を検出する
-    def CalcDangomusiMoment(self, maskedImage, frame, x0, y0):
+    def CalcDangomusiMoment(self, maskedImage):
         maskedImage
         gray = cv2.cvtColor(maskedImage, cv2.COLOR_BGR2GRAY)
         ret, bin_img = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
         contours, hierarchy = cv2.findContours(
             bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        approx_contours = []
+        for i, cnt in enumerate(contours):
+            # 輪郭の周囲の長さを計算する。
+            arclen = cv2.arcLength(cnt, True)
+            # 輪郭を近似する。
+            approx_cnt = cv2.approxPolyDP(
+                cnt, epsilon=0.005 * arclen, closed=True)
+            approx_contours.append(approx_cnt)
+        triangles = list(filter(lambda x: len(x) > 3, approx_contours))
         contours = list(filter(lambda x: (cv2.contourArea(
-            x) > 100 and cv2.contourArea(x) < 1500), contours))
+            x) > 100 and cv2.contourArea(x) < 1500), triangles))
 
         if len(contours) == 0:
-            return NULL
+            return 0, 0
 
-        print(cv2.contourArea(contours[0], False))
+        # print(cv2.contourArea(contours[0], False))
+        mu = cv2.moments(contours[0])
+        x, y = int(mu["m10"] / mu["m00"]), int(mu["m01"] / mu["m00"])
 
         copy_bin_img = cv2.cvtColor(bin_img, cv2.COLOR_GRAY2BGR)
         cv2.drawContours(copy_bin_img, [contours[0]], 0, (0, 0, 255), 2)
+        copy_bin_img = cv2.circle(
+            copy_bin_img, (x, y), 5, (0, 255, 255), -1)  # yellow
         cv2.imshow(self.MASKED_WINDOW_NAME, copy_bin_img)
 
+        return x, y
+
+    def CalcDangomushiNozleDistance(self, frame, x0, y0, moX, moY, railWidthDistance, railHeightDistance):
+        _distance = 0
+        _moX = x0 + moX
+        _moY = y0 + moY
+        nozlePosX = x0
+        nozlePosY = (railHeightDistance // 2) + y0
+        _distance = math.sqrt(abs(nozlePosX - _moX)**2 +
+                              abs(nozlePosY - _moY)**2)
+
+        return nozlePosX, nozlePosY, _moX, _moY, _distance
+
+    def PrintDangomusiNozleDistance(self, frame, nozlePosX, nozlePosY, moX, moY, _distance=0):
+        frame = cv2.circle(frame, (int(nozlePosX), int(nozlePosY)),
+                           5, (0, 255, 255), -1)
+        frame = cv2.circle(frame, (int(moX), int(moY)),
+                           5, (0, 255, 255), -1)  # yellow
+        text = "rail width : " + str(int(_distance))
+        coordinates = (50, 150)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        fontScale = 1
+        color = (255, 0, 255)
+        thickness = 2
+        frame = cv2.putText(frame, text, coordinates,
+                            font, fontScale, color, thickness, cv2.LINE_AA)
+        return frame
+
     # cameraの映像を表示する
+
     def camera_window(self):
         delay = 1
         window_name = "frame"
