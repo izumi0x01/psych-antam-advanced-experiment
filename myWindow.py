@@ -19,6 +19,8 @@ class Window(tk.Frame):
     SENDDATA_BUTTON_BG_COLOR: str = "lightpink"
     START_BUTTON_BG_COLOR: str = "lightgreen"
     STOP_BUTTON_BG_COLOR: str = "lemonchiffon"
+    SET_BUTTON_BG_COLOR: str = "lightpink"
+    RESET_BUTTON_BG_COLOR: str = "lightblue"
 
     @property
     def InputPressure(self) -> int:
@@ -70,9 +72,10 @@ class Window(tk.Frame):
     def IsMeasuring(self, value: bool = False):
         self.__isMeasuring = value
 
-    def __init__(self, root, mySerial, myCSV):
+    def __init__(self, root, mySerial, myCSV, myVision):
         super().__init__(root)
 
+        self.__myVision = myVision
         self.__myCSV = myCSV
         self.__root = root
         self.__mySerial = mySerial
@@ -181,20 +184,34 @@ class Window(tk.Frame):
         self.tf4.grid(column=0, row=3, padx=self.FRAME_PADX,
                       pady=self.FRAME_PADY, sticky=tk.E + tk.W)
 
-        # 4,マスクボタン
-        self.injectAirButton = tk.Button(
-            self.tf4, text='マスク固定', bg=self.BUTTON_DISABLED_BG_COLOR, bd=4, width=15)
-        self.injectAirButton.grid(
+        # 4,マスク固定ボタン
+        self.setMaskButton = tk.Button(
+            self.tf4, text='マスク固定', bg=self.SET_BUTTON_BG_COLOR, bd=4, width=15)
+        self.setMaskButton.grid(
             padx=10, pady=10, column=0, row=0, sticky='w')
-        self.injectAirButton.bind("<Button-1>", self.InjectAirEventHandler)
-        self.injectAirButton["state"] = "disable"
+        self.setMaskButton.bind("<Button-1>", self.SetMaskButtonEventHandler)
+        self.setMaskButton["state"] = "disable"
 
-        self.injectAirButton = tk.Button(
+        # 4,マスク解除ボタン
+        self.resetMaskButton = tk.Button(
             self.tf4, text='マスク解除', bg=self.BUTTON_DISABLED_BG_COLOR, bd=4, width=15)
-        self.injectAirButton.grid(
+        self.resetMaskButton.grid(
             padx=10, pady=10, column=0, row=1, sticky='w')
-        self.injectAirButton.bind("<Button-1>", self.InjectAirEventHandler)
-        self.injectAirButton["state"] = "disable"
+        self.resetMaskButton.bind(
+            "<Button-1>", self.ResetMaskButtonEventHandler)
+        self.resetMaskButton["state"] = "disable"
+
+    def SetMaskButtonEventHandler(self, event):
+        self.resetMaskButton["state"] = "normal"
+        self.resetMaskButton["bg"] = self.RESET_BUTTON_BG_COLOR
+        self.setMaskButton["state"] = "disabled"
+        self.setMaskButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
+
+    def ResetMaskButtonEventHandler(self, event):
+        self.setMaskButton["state"] = "normal"
+        self.setMaskButton["bg"] = self.SET_BUTTON_BG_COLOR
+        self.resetMaskButton["state"] = "disabled"
+        self.resetMaskButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
 
     def SendDataButtonEventHandler(self, event):
         if self.sendDataButton["state"] == "disabled":

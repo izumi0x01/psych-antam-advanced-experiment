@@ -20,6 +20,7 @@ class Vision:
     MASKED_WINDOW_NAME = "Masked"
     WINDOW_HEIGHT = 0
     WINDOW_WIDTH = 0
+    MASK_FIXED_FLAG: bool = False
 
     def __init__(self):
         self.__threshold: int = 200

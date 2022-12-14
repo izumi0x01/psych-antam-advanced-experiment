@@ -15,7 +15,7 @@ try:
     _myCSV = myCSV.CSV()
     _myVision = myVision.Vision()
     root = tk.Tk()
-    _myWindow = myWindow.Window(root, _mySerial, _myCSV)
+    _myWindow = myWindow.Window(root, _mySerial, _myCSV, _myVision)
     _myVision.MakeWindow()
 
     while True:
