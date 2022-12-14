@@ -20,9 +20,6 @@ class Vision:
     MASKED_WINDOW_NAME = "Masked"
     WINDOW_HEIGHT = 0
     WINDOW_WIDTH = 0
-    X0, Y0 = 1, 1
-    X1: int
-    Y1: int
 
     def __init__(self):
         self.__threshold: int = 200
@@ -41,28 +38,9 @@ class Vision:
         self.WINDOW_HEIGHT = int(self.__cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.WINDOW_WIDTH = int(self.__cam.get(cv2.CAP_PROP_FRAME_WIDTH))
 
-        # self.Y1 = self.WINDOW_HEIGHT
-        # self.X1 = self.WINDOW_WIDTH
-        # cv2.createTrackbar("substract_height", self.BINARY_WINDOW_NAME, 0,
-        #                    self.WINDOW_HEIGHT // 2, self.YChangedEventHandler)
-        # cv2.createTrackbar("substract_width", self.BINARY_WINDOW_NAME, 0,
-        #                    self.WINDOW_WIDTH, self.XChangedEventHandler)
-
     def SleshHoldChangedEventHandler(self, position):
         self.__threshold = cv2.getTrackbarPos(
             "slesh_hold", self.BINARY_WINDOW_NAME)
-
-    # def XChangedEventHandler(self, position):
-    #     self.X0 = cv2.getTrackbarPos(
-    #         "substract_width", self.BINARY_WINDOW_NAME)
-    #     self.X1 = self.WINDOW_WIDTH
-    #     - cv2.getTrackbarPos("substract_width", self.BINARY_WINDOW_NAME)
-
-    # def YChangedEventHandler(self, position):
-    #     self.Y0 = cv2.getTrackbarPos(
-    #         "substract_height", self.BINARY_WINDOW_NAME)
-    #     self.Y1 = self.WINDOW_HEIGHT
-    #     - cv2.getTrackbarPos("substract_height", self.BINARY_WINDOW_NAME)
 
     def UpdateWindow(self):
         # 描画の待ち時間設定
@@ -86,7 +64,7 @@ class Vision:
         #     cv2.imshow(self.MASKED_WINDOW_NAME, self.__maskedImage)
 
         if self.__railPointList != NULL:
-            print(str(datetime.datetime.now()) + str(self.__railPointList))
+            # print(str(datetime.datetime.now()) + str(self.__railPointList))
             self.CalcRailWidthDistance(frame, self.__railPointList)
             self.CalcRailHeightDistance(frame, self.__railPointList)
             self.DrawRailFlamePoint(frame, self.__railPointList)
@@ -246,22 +224,14 @@ class Vision:
         mask = mask[y0: max(railPointList[1][1], railPointList[3][1]),
                     x0: max(railPointList[2][0], railPointList[3][0])]
         # 背景画像のうち、合成する領域
-        # マスクをかけようとするとエラーが出る？
         splitedMask = cv2.split(mask)
+        print(splitedMask)
         if len(splitedMask) == 3:
             mask, g_, r_ = splitedMask
-            editedRawImage[mask == 0] = [0, 0, 0]
-        # maskedImage = cv2.bitwise_and(editedRawImage, mask)
-        # if np.any(maskedImage != None):
-        # cv2.imshow(self.MASKED_WINDOW_NAME, maskedImage)
+            editedRawImage[mask == 1] = [0, 0, 0]
 
-        # if np.any(maskedImage == NULL):
-        #     return NULL
-        # else:
-        # return maskedImage
         if editedRawImage.shape[0] != 0 and editedRawImage.shape[1] != 0:
             cv2.imshow(self.MASKED_WINDOW_NAME, editedRawImage)
-        # cv2.waitKey()
 
     def CalcDangomusiMoment(self):
         pass
