@@ -5,6 +5,7 @@ from turtle import distance, update
 from cv2 import contourArea
 import numpy as np
 import cv2
+from PIL import Image
 import sys
 import math
 import copy
@@ -91,8 +92,8 @@ class Vision:
             self.DrawRailFlamePoint(frame, self.__railPointList)
             cv2.imshow(self.MAIN_WINDOW_NAME, frame)
             # エラー次第では動く？
-            # self.MakeRailMask(
-            #     grayImage, frame, self.__railPointList)
+            self.MakeRailMask(
+                grayImage, frame, self.__railPointList)
 
         cv2.imshow(self.BINARY_WINDOW_NAME, grayImage)
 
@@ -244,9 +245,12 @@ class Vision:
                          color=(255, 255, 255), thickness=-1)
         mask = mask[y0: max(railPointList[1][1], railPointList[3][1]),
                     x0: max(railPointList[2][0], railPointList[3][0])]
-        mask = cv2.cvtColor(grayImage, cv2.COLOR_BGR2GRAY)
         # 背景画像のうち、合成する領域
         # マスクをかけようとするとエラーが出る？
+        splitedMask = cv2.split(mask)
+        if len(splitedMask) == 3:
+            mask, g_, r_ = splitedMask
+            editedRawImage[mask == 0] = [0, 0, 0]
         # maskedImage = cv2.bitwise_and(editedRawImage, mask)
         # if np.any(maskedImage != None):
         # cv2.imshow(self.MASKED_WINDOW_NAME, maskedImage)
@@ -255,8 +259,9 @@ class Vision:
         #     return NULL
         # else:
         # return maskedImage
-
-        # cv2.imshow(self.MASKED_WINDOW_NAME, self.maskedImage)
+        if editedRawImage.shape[0] != 0 and editedRawImage.shape[1] != 0:
+            cv2.imshow(self.MASKED_WINDOW_NAME, editedRawImage)
+        # cv2.waitKey()
 
     def CalcDangomusiMoment(self):
         pass
