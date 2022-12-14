@@ -206,12 +206,14 @@ class Window(tk.Frame):
         self.resetMaskButton["bg"] = self.RESET_BUTTON_BG_COLOR
         self.setMaskButton["state"] = "disabled"
         self.setMaskButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
+        self.__myVision.MASK_FIXED_FLAG = True
 
     def ResetMaskButtonEventHandler(self, event):
         self.setMaskButton["state"] = "normal"
         self.setMaskButton["bg"] = self.SET_BUTTON_BG_COLOR
         self.resetMaskButton["state"] = "disabled"
         self.resetMaskButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
+        self.__myVision.MASK_FIXED_FLAG = False
 
     def SendDataButtonEventHandler(self, event):
         if self.sendDataButton["state"] == "disabled":

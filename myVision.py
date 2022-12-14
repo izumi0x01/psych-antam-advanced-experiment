@@ -26,6 +26,7 @@ class Vision:
         self.__threshold: int = 200
         self.distance = 0
         self.__railPointList = NULL
+        self.__maskedImage = NULL
 
     def MakeWindow(self):
         cv2.namedWindow(self.BINARY_WINDOW_NAME)
@@ -53,18 +54,22 @@ class Vision:
         # frame全体から画像の抽出
         grayImage = self.ToBinaryImage(frame)
         (grayImage, railPointList) = self.GetRailCountour(grayImage)
-        if railPointList != NULL:
+        if (self.MASK_FIXED_FLAG == False) and (railPointList != NULL):
             (grayImage, railPointList) = self.SortRailPointList(
                 grayImage, railPointList)
             self.__railPointList = copy.deepcopy(railPointList)
+            self.DrawRailFlamePoint(grayImage, self.__railPointList)
 
-        if self.__railPointList != NULL:
+        if (self.MASK_FIXED_FLAG == True) and (self.__railPointList != NULL):
             # print(str(datetime.datetime.now()) + str(self.__railPointList))
             self.CalcRailWidthDistance(frame, self.__railPointList)
             self.CalcRailHeightDistance(frame, self.__railPointList)
-            self.DrawRailFlamePoint(frame, self.__railPointList)
+            # self.DrawRailFlamePoint(frame, self.__railPointList)
             cv2.imshow(self.MAIN_WINDOW_NAME, frame)
-            self.MakeRailMask(grayImage, frame, self.__railPointList)
+            (self.__maskedImage, x0, y0) = self.MakeRailMask(
+                grayImage, frame, self.__railPointList)
+            if self.__maskedImage != NULL:
+                self.CalcDangomusiMoment(self.__maskedImage, frame, x0, y0)
 
         cv2.imshow(self.BINARY_WINDOW_NAME, grayImage)
 
@@ -218,14 +223,15 @@ class Vision:
                     x0: max(railPointList[2][0], railPointList[3][0])]
         # 背景画像のうち、合成する領域
         splitedMask = cv2.split(mask)
-        if len(splitedMask) == 3:
+        if len(splitedMask) == 3 and editedRawImage.shape[0] != 0 and editedRawImage.shape[1] != 0:
             mask, g_, r_ = splitedMask
-            editedRawImage[mask == 1] = [0, 0, 0]
+            editedRawImage[mask == 1] = [255, 255, 255]
+            # cv2.imshow(self.MASKED_WINDOW_NAME, editedRawImage)
+            return editedRawImage, (x0, y0)
+        else:
+            return NULL, (x0, y0)
 
-        if editedRawImage.shape[0] != 0 and editedRawImage.shape[1] != 0:
-            cv2.imshow(self.MASKED_WINDOW_NAME, editedRawImage)
-
-    def CalcDangomusiMoment(self):
+    def CalcDangomusiMoment(self, maskedImage, frame, x0, y0):
         pass
     # cameraの映像を表示する
 
