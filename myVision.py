@@ -24,7 +24,6 @@ class Vision:
     def __init__(self):
         self.__threshold: int = 200
         self.distance = 0
-        self.__maskedImage = NULL
         self.__railPointList = NULL
 
     def MakeWindow(self):
@@ -51,7 +50,6 @@ class Vision:
         if not ret:
             return NULL
         # frame全体から画像の抽出
-        # frame = copy.copy(frame1[self.X0:self.X1, self.Y0:self.Y1])
         grayImage = self.ToBinaryImage(frame)
         (grayImage, railPointList) = self.GetRailCountour(grayImage)
         if railPointList != NULL:
@@ -59,19 +57,13 @@ class Vision:
                 grayImage, railPointList)
             self.__railPointList = copy.deepcopy(railPointList)
 
-        # if np.all(self.__maskedImage != NULL) and np.all(self.__maskedImage != None):
-        #     print(self.__maskedImage)
-        #     cv2.imshow(self.MASKED_WINDOW_NAME, self.__maskedImage)
-
         if self.__railPointList != NULL:
             # print(str(datetime.datetime.now()) + str(self.__railPointList))
             self.CalcRailWidthDistance(frame, self.__railPointList)
             self.CalcRailHeightDistance(frame, self.__railPointList)
             self.DrawRailFlamePoint(frame, self.__railPointList)
             cv2.imshow(self.MAIN_WINDOW_NAME, frame)
-            # エラー次第では動く？
-            self.MakeRailMask(
-                grayImage, frame, self.__railPointList)
+            self.MakeRailMask(grayImage, frame, self.__railPointList)
 
         cv2.imshow(self.BINARY_WINDOW_NAME, grayImage)
 
