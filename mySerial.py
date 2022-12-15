@@ -8,6 +8,7 @@ import datetime
 import sys
 import glob
 import copy
+import time
 
 
 class Serial:
@@ -62,6 +63,7 @@ class Serial:
         sendData = {'p': inputPressure, 'd': inputDeltaTime}
         sendDataString = str(sendData)
 
+        self.__openSerial.flush()
         self.__openSerial.reset_input_buffer()
         self.__openSerial.reset_output_buffer()
 
@@ -69,9 +71,11 @@ class Serial:
         self.__openSerial.write(bytes(sendDataString, 'utf-8'))
         print("[Success to send Deltatime, Pressure]\n")
 
-        while self.__openSerial.out_waiting > 0:
-            continue
+        while True:
+            if self.__openSerial.out_waiting == 0:
+                break
 
+        time.sleep(0.005)
         self.__openSerial.reset_output_buffer()
 
     def SendStartMeasuringSignal(self):
@@ -79,14 +83,18 @@ class Serial:
             print("[Port is not opened]")
             return NULL
 
+        self.__openSerial.flush()
         self.__openSerial.reset_input_buffer()
         self.__openSerial.reset_output_buffer()
 
         print("[measuring start signal sended]\n")
         self.__openSerial.write(bytes('1', 'utf-8'))
-        while self.__openSerial.out_waiting > 0:
-            continue
 
+        while True:
+            if self.__openSerial.out_waiting == 0:
+                break
+
+        time.sleep(0.005)
         self.__openSerial.reset_output_buffer()
 
     def SendInjectAirSignalFromVision(self):
@@ -94,14 +102,17 @@ class Serial:
             print("[Port is not opened]")
             return NULL
 
+        self.__openSerial.flush()
         self.__openSerial.reset_input_buffer()
         self.__openSerial.reset_output_buffer()
 
         print("[Inject Air signal sended]\n")
         self.__openSerial.write(bytes('2', 'utf-8'))
-        while self.__openSerial.out_waiting > 0:
-            continue
+        while True:
+            if self.__openSerial.out_waiting == 0:
+                break
 
+        time.sleep(0.005)
         self.__openSerial.reset_output_buffer()
 
     def SendStopMeasuringSignal(self):
@@ -109,15 +120,17 @@ class Serial:
             print("[Port is not opened]")
             return NULL
 
+        self.__openSerial.flush()
         self.__openSerial.reset_input_buffer()
         self.__openSerial.reset_output_buffer()
 
         print("[measuring stop signal sended]\n")
         self.__openSerial.write(bytes('3', 'utf-8'))
+        while True:
+            if self.__openSerial.out_waiting == 0:
+                break
 
-        while self.__openSerial.out_waiting > 0:
-            continue
-
+        time.sleep(0.005)
         self.__openSerial.reset_output_buffer()
 
     def SendInjectAirSignalFromWindow(self):
@@ -125,15 +138,17 @@ class Serial:
             print("[Port is not opened]")
             return NULL
 
+        self.__openSerial.flush()
         self.__openSerial.reset_input_buffer()
         self.__openSerial.reset_output_buffer()
 
         print("[Inject Air Signal sended]\n")
         self.__openSerial.write(bytes('9', 'utf-8'))
+        while True:
+            if self.__openSerial.out_waiting == 0:
+                break
 
-        while self.__openSerial.out_waiting > 0:
-            continue
-
+        time.sleep(0.005)
         self.__openSerial.reset_output_buffer()
 
     # マイコンからのシリアル通信のデータがあれば、それを読み取る.
@@ -143,7 +158,7 @@ class Serial:
             try:
                 decodedData = rawData.decode()
                 data = json.loads(decodedData)
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, UnicodeDecodeError):
                 # data: dict = {"RECIEVE_TEXT": str(decodedData)}
                 data: dict = NULL
                 return data
