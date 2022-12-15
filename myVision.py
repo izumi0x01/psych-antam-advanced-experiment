@@ -1,11 +1,11 @@
 from ast import While
 from asyncio.windows_events import NULL
 from pickle import NONE
+from re import X
 from turtle import distance, update
 from cv2 import contourArea
 import numpy as np
 import cv2
-from PIL import Image
 import sys
 import math
 import copy
@@ -21,6 +21,9 @@ class Vision:
     WINDOW_HEIGHT = 0
     WINDOW_WIDTH = 0
     MASK_FIXED_FLAG: bool = False
+    DANGOMUSI_X: int = 0
+    DANGOMUSI_Y: int = 0
+    NOZLE_DANGOMUSI_DISTANCE: float = 0
 
     def __init__(self):
         self.__threshold: int = 200
@@ -68,8 +71,9 @@ class Vision:
             # self.DrawRailFlamePoint(frame, self.__railPointList)
             x0, y0, maskedRailRawImage = self.MakeRailMask(
                 grayImage, frame, self.__railPointList)
-            moX, moY = self.CalcDangomusiMoment(maskedRailRawImage)
-            nozlePosX, nozlePosY, moX, moY, _distance = self.CalcDangomushiNozleDistance(
+            moX, moY, _distance = self.CalcDangomusiMoment(
+                maskedRailRawImage, railWidthDistance, railHeightDistance)
+            nozlePosX, nozlePosY, moX, moY = self.CalcDangomushiNozleDistance(
                 frame, x0, y0, moX, moY, railWidthDistance, railHeightDistance)
             frame = self.PrintDangomusiNozleDistance(
                 frame, nozlePosX, nozlePosY, moX, moY, _distance)
@@ -231,7 +235,7 @@ class Vision:
             return x0, y0, editedRawImage
 
     # ダンゴムシの重心を検出する
-    def CalcDangomusiMoment(self, maskedImage):
+    def CalcDangomusiMoment(self, maskedImage, railWidthDistance, railHeightDistance):
         maskedImage
         gray = cv2.cvtColor(maskedImage, cv2.COLOR_BGR2GRAY)
         ret, bin_img = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
@@ -250,7 +254,7 @@ class Vision:
             x) > 100 and cv2.contourArea(x) < 1500), triangles))
 
         if len(contours) == 0:
-            return 0, 0
+            return 0, 0, 0
 
         # print(cv2.contourArea(contours[0], False))
         mu = cv2.moments(contours[0])
@@ -261,19 +265,19 @@ class Vision:
         copy_bin_img = cv2.circle(
             copy_bin_img, (x, y), 5, (0, 255, 255), -1)  # yellow
         cv2.imshow(self.MASKED_WINDOW_NAME, copy_bin_img)
+        y0 = copy_bin_img.shape[0] // 2
+        _distance = math.sqrt(abs(x - 0)**2 +
+                              abs(y - y0)**2)
 
-        return x, y
+        return x, y, _distance
 
     def CalcDangomushiNozleDistance(self, frame, x0, y0, moX, moY, railWidthDistance, railHeightDistance):
-        _distance = 0
         _moX = x0 + moX
         _moY = y0 + moY
         nozlePosX = x0
         nozlePosY = (railHeightDistance // 2) + y0
-        _distance = math.sqrt(abs(nozlePosX - _moX)**2 +
-                              abs(nozlePosY - _moY)**2)
 
-        return nozlePosX, nozlePosY, _moX, _moY, _distance
+        return nozlePosX, nozlePosY, _moX, _moY
 
     def PrintDangomusiNozleDistance(self, frame, nozlePosX, nozlePosY, moX, moY, _distance=0):
         frame = cv2.circle(frame, (int(nozlePosX), int(nozlePosY)),

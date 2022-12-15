@@ -29,6 +29,9 @@ try:
 
         # copy()メソッドで辞書を作らないと怒られる
         decodedData: dict = _mySerial.ReadData()
+        if (decodedData != None) or (decodedData != NULL):
+            continue
+
         reshapedData = _mySerial.ReshapeData(copy.copy(decodedData))
         # _mySerial.PrintData(copy.copy(reshapedData))
 
@@ -38,7 +41,10 @@ try:
         if (reshapedData != None) and (reshapedData != NULL) and (_myCSV.IsFileOpened()):
             # _mySerial.PrintData(copy.copy(reshapedData))
             print(reshapedData)
-            _myCSV.AddRow(reshapedData)
+            if (_myVision.DANGOMUSI_X == 0) or (_myVision.DANGOMUSI_Y == 0) or (_myVision.NOZLE_DANGOMUSI_DISTANCE == 0):
+                continue
+            _myCSV.AddRow(reshapedData, _myVision.DANGOMUSI_X,
+                          _myVision.DANGOMUSI_Y, _myVision.NOZLE_DANGOMUSI_DISTANCE)
 
 # Ctrl-Cでプログラムの終了
 except KeyboardInterrupt:

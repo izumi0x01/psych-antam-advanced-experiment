@@ -104,12 +104,13 @@ class Serial:
     def ReadData(self):
         if self.__openSerial.in_waiting > 0:
             rawData = self.__openSerial.readline()
-            decodedData = rawData.decode()
-            data = json.loads(decodedData)
             try:
-                data = copy.copy(json.loads(decodedData))
+                decodedData = rawData.decode()
+                data = json.loads(decodedData)
             except json.JSONDecodeError:
-                data: dict = {"RECIEVE_TEXT": str(decodedData)}
+                # data: dict = {"RECIEVE_TEXT": str(decodedData)}
+                data: dict = NULL
+                return data
         else:
             data: dict = NULL
 
