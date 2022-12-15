@@ -13,7 +13,7 @@ try:
     _mySerial = mySerial.Serial()
     _mySerial.ConfirmateComPort()
     _myCSV = myCSV.CSV()
-    _myVision = myVision.Vision()
+    _myVision = myVision.Vision(_mySerial)
     root = tk.Tk()
     _myWindow = myWindow.Window(root, _mySerial, _myCSV, _myVision)
     _myVision.MakeWindow()

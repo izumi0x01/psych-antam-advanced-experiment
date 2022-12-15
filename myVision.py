@@ -10,6 +10,7 @@ import sys
 import math
 import copy
 import datetime
+import mySerial
 
 
 class Vision:
@@ -25,11 +26,13 @@ class Vision:
     DANGOMUSI_Y: int = 0
     NOZLE_DANGOMUSI_DISTANCE: float = 0
     DEFAULT_RAIL_DISTANCE: float = 200
+    SEND_INJECT_AIR_SIGNAL_FLAG: bool = False
 
-    def __init__(self):
+    def __init__(self, _mySerial):
         self.__threshold: int = 200
         self.distance = 0
         self.__railPointList = NULL
+        self.__mySerial = _mySerial
 
     def MakeWindow(self):
         cv2.namedWindow(self.BINARY_WINDOW_NAME)
@@ -78,6 +81,7 @@ class Vision:
             self.DANGOMUSI_X = moX
             self.DANGOMUSI_Y = moY
             self.NOZLE_DANGOMUSI_DISTANCE = _distance
+            self.SendInjectAirSignalTrigger(49, 50)
             nozlePosX, nozlePosY, moX, moY = self.CalcDangomushiNozleDistance(
                 frame, x0, y0, moX, moY, railWidthDistance, railHeightDistance)
             frame = self.PrintDangomusiNozleDistance(
@@ -302,6 +306,11 @@ class Vision:
         return frame
 
     # cameraの映像を表示する
+
+    def SendInjectAirSignalTrigger(self, min, max):
+        if (self.NOZLE_DANGOMUSI_DISTANCE > min) and (self.NOZLE_DANGOMUSI_DISTANCE < max) and (self.SEND_INJECT_AIR_SIGNAL_FLAG == True):
+            self.__mySerial.SendInjectAirSignalFromVision()
+            self.SEND_INJECT_AIR_SIGNAL_FLAG = False
 
     def camera_window(self):
         delay = 1

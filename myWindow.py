@@ -257,6 +257,7 @@ class Window(tk.Frame):
             self.InputPressure, self.InputDeltaTime)
         self.measuringStateLabel["text"] = filename
         self.__mySerial.SendStartMeasuringSignal()
+        self.__myVision.SEND_INJECT_AIR_SIGNAL_FLAG = True
 
         self.sendDataButton["state"] = "disabled"
         self.sendDataButton["bg"] = self.BUTTON_DISABLED_BG_COLOR
@@ -274,6 +275,7 @@ class Window(tk.Frame):
         self.sendDataButton["state"] = "normal"
         self.sendDataButton["bg"] = self.SENDDATA_BUTTON_BG_COLOR
         self.__mySerial.SendStopMeasuringSignal()
+        self.__myVision.SEND_INJECT_AIR_SIGNAL_FLAG = False
 
         if self.__myCSV.IsFileOpened():
             self.__myCSV.CloseFile()

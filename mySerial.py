@@ -65,7 +65,8 @@ class Serial:
 
         self.__openSerial.flush()
         self.__openSerial.reset_input_buffer()
-        time.sleep(0.1)
+        self.__openSerial.reset_output_buffer()
+        time.sleep(0.05)
         # self.__openSerial.reset_output_buffer()
         # time.sleep(0.005)
 
@@ -77,7 +78,9 @@ class Serial:
         #     if self.__openSerial.out_waiting == 0:
         #         break
 
-        time.sleep(0.1)
+        time.sleep(0.05)
+        self.__openSerial.flush()
+        self.__openSerial.reset_input_buffer()
         self.__openSerial.reset_output_buffer()
 
     def SendStartMeasuringSignal(self):
@@ -98,7 +101,7 @@ class Serial:
         #     if self.__openSerial.out_waiting == 0:
         #         break
 
-        time.sleep(0.01)
+        time.sleep(0.05)
         self.__openSerial.reset_output_buffer()
 
     def SendInjectAirSignalFromVision(self):
@@ -116,7 +119,7 @@ class Serial:
         #     if self.__openSerial.out_waiting == 0:
         #         break
 
-        time.sleep(0.01)
+        time.sleep(0.05)
         self.__openSerial.reset_output_buffer()
 
     def SendStopMeasuringSignal(self):
@@ -173,9 +176,13 @@ class Serial:
 
     def ReshapeData(self, data):
         if data != NULL:
-            self._error = int(data['Err'])
-            data.pop('Err')
-            return data
+            try:
+                self._error = int(data['Err'])
+                data.pop('Err')
+                return data
+            except KeyError:
+                return data
+
         elif data == None:
             return NULL
 
