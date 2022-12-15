@@ -22,8 +22,8 @@ class CSV:
             '_dt' + str(DeltaTime) + '_p' + str(Pressure) + '.csv'
         with open(filename, 'w', encoding="utf-8", newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(['DataTime', 'DeltaTime', 'Pressure',
-                            'LowFlowRate', 'HighFlowRate', 'DangomushiposX', 'DangomushiposY', 'NozleDangomushiDistance'])
+            writer.writerow(['DataTime', 'HighFlowRate', 'NozleDangomushiDistance', 'DeltaTime', 'DangomushiposX',
+                            'DangomushiposY'])
         self._f = open(filename, 'a', encoding="utf-8", newline='')
         self._writer = csv.writer(self._f)
         return filename
@@ -39,8 +39,9 @@ class CSV:
             self._f.close()
 
     def AddRow(self, data: dict, DangomushiposX, DangomushiposY, NozleDangomushiDistance):
+        FlowRate = 10 * ((float(data['HF']) - 1024 * 0.2) / 1024)
         self._writer.writerow(
-            [time.time() - self._startTime, data['d'], 0, data['LF'], data['HF'], DangomushiposX, DangomushiposY, NozleDangomushiDistance])
+            [time.time() - self._startTime, FlowRate, NozleDangomushiDistance, data['d'], DangomushiposX, DangomushiposY])
 
     def editCSV(self):
         pass

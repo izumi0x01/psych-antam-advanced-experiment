@@ -248,6 +248,9 @@ class Window(tk.Frame):
         if self.startButton["state"] == "disabled":
             return NULL
 
+        if (self.__myVision.DANGOMUSI_X == 0) or (self.__myVision.DANGOMUSI_Y == 0) or (self.__myVision.NOZLE_DANGOMUSI_DISTANCE == 0):
+            return NULL
+
         print("[I'm measuring now...]")
         self.IsMeasuring = True
         filename = self.__myCSV.MakeFile(

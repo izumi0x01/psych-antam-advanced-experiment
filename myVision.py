@@ -24,6 +24,7 @@ class Vision:
     DANGOMUSI_X: int = 0
     DANGOMUSI_Y: int = 0
     NOZLE_DANGOMUSI_DISTANCE: float = 0
+    DEFAULT_RAIL_DISTANCE: float = 200
 
     def __init__(self):
         self.__threshold: int = 200
@@ -74,6 +75,9 @@ class Vision:
                 grayImage, frame, self.__railPointList)
             moX, moY, _distance = self.CalcDangomusiMoment(
                 maskedRailRawImage, railWidthDistance, railHeightDistance)
+            self.DANGOMUSI_X = moX
+            self.DANGOMUSI_Y = moY
+            self.NOZLE_DANGOMUSI_DISTANCE = _distance
             nozlePosX, nozlePosY, moX, moY = self.CalcDangomushiNozleDistance(
                 frame, x0, y0, moX, moY, railWidthDistance, railHeightDistance)
             frame = self.PrintDangomusiNozleDistance(
@@ -269,6 +273,8 @@ class Vision:
         y0 = copy_bin_img.shape[0] // 2
         _distance = math.sqrt(abs(x - 0)**2 +
                               abs(y - y0)**2)
+        _distance = self.DEFAULT_RAIL_DISTANCE * \
+            (_distance / railWidthDistance)
 
         return x, y, _distance
 
@@ -285,7 +291,7 @@ class Vision:
                            5, (0, 255, 255), -1)
         frame = cv2.circle(frame, (int(moX), int(moY)),
                            5, (0, 255, 255), -1)  # yellow
-        text = "rail width : " + str(int(_distance))
+        text = "Distance : " + str(int(_distance)) + "mm"
         coordinates = (50, 150)
         font = cv2.FONT_HERSHEY_SIMPLEX
         fontScale = 1
