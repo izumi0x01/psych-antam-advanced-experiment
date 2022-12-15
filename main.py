@@ -19,24 +19,26 @@ try:
     _myVision.MakeWindow()
 
     while True:
-        _myVision.UpdateWindow()
 
         _myWindow.update_idletasks()
         _myWindow.update()
+
+        _myVision.UpdateWindow()
 
         if _mySerial.ArduinoPort == NULL:
             continue
 
         # copy()メソッドで辞書を作らないと怒られる
         decodedData: dict = _mySerial.ReadData()
-        if (decodedData != None) or (decodedData != NULL):
-            continue
-
-        reshapedData = _mySerial.ReshapeData(copy.copy(decodedData))
-        # _mySerial.PrintData(copy.copy(reshapedData))
 
         if _myWindow.IsMeasuring == False:
             continue
+
+        if (decodedData == None) or (decodedData == NULL):
+            continue
+        reshapedData = _mySerial.ReshapeData(copy.copy(decodedData))
+
+        # _mySerial.PrintData(copy.copy(reshapedData))
 
         if (reshapedData != None) and (reshapedData != NULL) and (_myCSV.IsFileOpened()):
             # _mySerial.PrintData(copy.copy(reshapedData))

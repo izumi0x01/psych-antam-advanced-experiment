@@ -13,6 +13,7 @@ import copy
 class Serial:
     BOUDRATE: int = 115200
     COMPORT: str = "COM15"
+    SENDING_STATE: bool = False
 
     # RTS:Request to Send.送信要求。DSRと対になる信号でこちらの装置が正常に動作していること、すなわち電源が入っていることを相手に知らせるためのものです。正常に動作しているときには論理を"1"にします。
     # DTR:Data Terminal Ready。送信要求信号を意味します。相手からこちらにデータを送る要求を行います。論理を"0"にすると相手はデータを送ることを中断します
@@ -61,6 +62,9 @@ class Serial:
         sendData = {'p': inputPressure, 'd': inputDeltaTime}
         sendDataString = str(sendData)
 
+        self.__openSerial.reset_input_buffer()
+        self.__openSerial.reset_output_buffer()
+
         # .writelineだとエラー出るっぽい。->.writeにする。
         self.__openSerial.write(bytes(sendDataString, 'utf-8'))
         print("[Success to send Deltatime, Pressure]\n")
@@ -68,37 +72,69 @@ class Serial:
         while self.__openSerial.out_waiting > 0:
             continue
 
+        self.__openSerial.reset_output_buffer()
+
     def SendStartMeasuringSignal(self):
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
 
+        self.__openSerial.reset_input_buffer()
+        self.__openSerial.reset_output_buffer()
+
         print("[measuring start signal sended]\n")
         self.__openSerial.write(bytes('1', 'utf-8'))
+        while self.__openSerial.out_waiting > 0:
+            continue
+
+        self.__openSerial.reset_output_buffer()
 
     def SendInjectAirSignalFromVision(self):
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
 
+        self.__openSerial.reset_input_buffer()
+        self.__openSerial.reset_output_buffer()
+
         print("[Inject Air signal sended]\n")
         self.__openSerial.write(bytes('2', 'utf-8'))
+        while self.__openSerial.out_waiting > 0:
+            continue
+
+        self.__openSerial.reset_output_buffer()
 
     def SendStopMeasuringSignal(self):
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
 
+        self.__openSerial.reset_input_buffer()
+        self.__openSerial.reset_output_buffer()
+
         print("[measuring stop signal sended]\n")
         self.__openSerial.write(bytes('3', 'utf-8'))
+
+        while self.__openSerial.out_waiting > 0:
+            continue
+
+        self.__openSerial.reset_output_buffer()
 
     def SendInjectAirSignalFromWindow(self):
         if self.__openSerial == NULL:
             print("[Port is not opened]")
             return NULL
 
+        self.__openSerial.reset_input_buffer()
+        self.__openSerial.reset_output_buffer()
+
         print("[Inject Air Signal sended]\n")
         self.__openSerial.write(bytes('9', 'utf-8'))
+
+        while self.__openSerial.out_waiting > 0:
+            continue
+
+        self.__openSerial.reset_output_buffer()
 
     # マイコンからのシリアル通信のデータがあれば、それを読み取る.
     def ReadData(self):
@@ -188,6 +224,6 @@ if __name__ == "__main__":
     s = Serial()
 
     # windowsで、ポートの利用状況を詳しく調べる。
-    # s.WinSerialPortsDescripition()
+    s.WinSerialPortsDescripition()
 
-    s.PrintData()
+    # s.PrintData()
