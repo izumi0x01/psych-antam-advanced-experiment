@@ -36,13 +36,13 @@ try:
 
         if (decodedData == None) or (decodedData == NULL):
             continue
+        print(decodedData)
         reshapedData = _mySerial.ReshapeData(copy.copy(decodedData))
 
         # _mySerial.PrintData(copy.copy(reshapedData))
 
         if (reshapedData != None) and (reshapedData != NULL) and (_myCSV.IsFileOpened()):
             # _mySerial.PrintData(copy.copy(reshapedData))
-            print(reshapedData)
             if (_myVision.DANGOMUSI_X == 0) or (_myVision.DANGOMUSI_Y == 0) or (_myVision.NOZLE_DANGOMUSI_DISTANCE == 0):
                 continue
             _myCSV.AddRow(reshapedData, _myVision.DANGOMUSI_X,

@@ -14,7 +14,7 @@ import datetime
 
 class Vision:
 
-    FPS = 10
+    FPS = 120
     MAIN_WINDOW_NAME = "RAW"
     BINARY_WINDOW_NAME = "Binary"
     MASKED_WINDOW_NAME = "Masked"
@@ -38,6 +38,7 @@ class Vision:
         if not self.__cam.isOpened():
             return print("failure video capture")
         self.__cam.set(cv2.CAP_PROP_FPS, self.FPS)
+        # self.__cam.set(cv2.CAP_PROP_BUFFERSIZE, 3)
         self.WINDOW_HEIGHT = int(self.__cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.WINDOW_WIDTH = int(self.__cam.get(cv2.CAP_PROP_FRAME_WIDTH))
 
